@@ -3,262 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard List - UpFile System</title>
+    <title>Đăng nhập - UpFile</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-
-    <header class="dashboard-header">
-        <div class="brand-section">
-            <div class="brand-logo">🚀 UpFile <span style="font-size:0.8rem; opacity:0.7;">(List View)</span></div>
-            <a href="assign.html" id="btnAssign" class="btn btn-primary btn-sm" style="display:none; box-shadow:none;">
-                + Phân công
-            </a>
-            <a href="index2.html" class="btn btn-secondary btn-sm" style="margin-left: 10px;">Giao diện Cây</a>
+<body class="login-page-body">
+    
+    <div class="login-wrapper">
+        <div class="login-box">
+            <h2>HỆ THỐNG UPFILE</h2>
+            <p class="text-muted">Quản lý hồ sơ chuyên môn</p>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Tài khoản</label>
+                    <input type="text" id="username" class="form-control" placeholder="Nhập tên đăng nhập" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Mật khẩu</label>
+                    <input type="password" id="password" class="form-control" placeholder="Nhập mật khẩu" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Đăng Nhập</button>
+            </form>
+            <div id="loginMessage" style="color:red; text-align:center; margin-top:10px;"></div>
         </div>
+    </div>
 
-        <div class="stats-group">
-            <div class="stat-pill" title="Tổng số mục cần nộp">
-                <span>Tổng:</span>
-                <span id="statTotal" class="stat-val bg-blue">0</span>
-            </div>
-            <div class="stat-pill" title="Đã hoàn thành">
-                <span>Đã nộp:</span>
-                <span id="statDone" class="stat-val bg-green">0</span>
-            </div>
-            <div class="stat-pill" title="Chưa hoàn thành">
-                <span>Chưa nộp:</span>
-                <span id="statPending" class="stat-val bg-red">0</span>
-            </div>
+    <div id="changePassModal" class="modal">
+        <div class="modal-content">
+            <h3 style="color: var(--danger); margin-bottom: 10px;">⚠️ Cảnh Báo Bảo Mật</h3>
+            <p>Bạn đang sử dụng mật khẩu mặc định. Vui lòng đổi mật khẩu mới để tiếp tục.</p>
+            <form id="changePassForm" style="margin-top: 15px;">
+                <div class="form-group">
+                    <label>Mật khẩu mới</label>
+                    <input type="password" id="newPassword" class="form-control" required placeholder="Tối thiểu 8 ký tự, chữ, số, ký tự đặc biệt">
+                </div>
+                <div style="text-align: right;">
+                    <button type="submit" class="btn btn-danger">Xác nhận đổi & Đăng nhập</button>
+                </div>
+            </form>
         </div>
-
-        <div class="user-section">
-            <div class="user-info-text">
-                <span class="user-name" id="displayUserName">Đang tải...</span>
-                <span class="user-role-badge" id="displayUserRole">...</span>
-            </div>
-            <div class="user-avatar" id="userAvatar">U</div>
-            <button onclick="logout()" class="btn-logout-icon" title="Đăng xuất">⏻</button>
-        </div>
-    </header>
-
-    <main class="main-container">
-        <div id="dashboardContent" class="accordion-wrapper">
-            <div style="text-align: center; margin-top: 50px; color: #999;">
-                <p>Đang tải dữ liệu hồ sơ...</p>
-                <div class="loading-spinner"></div>
-            </div>
-        </div>
-    </main>
-
-    <input type="file" id="globalFileInput" style="display: none;" onchange="handleFileSelected(this)">
-    <input type="hidden" id="currentProfileID">
+    </div>
 
     <script src="script.js"></script>
-
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            checkAuth();
-            loadDashboardData();
+            handleLoginPage();
         });
-
-        // --- GHI ĐÈ HÀM RENDER DASHBOARD ---
-        function renderDashboard(data) {
-            const { Profile, SchoolYear, Folder, Subject, Block, Object: ObjectList, DocType, User } = data;
-            const currentUser = JSON.parse(localStorage.getItem('upfile_user'));
-            const isAdmin = currentUser.Permissions === 'Admin';
-            const container = document.getElementById('dashboardContent');
-            
-            container.innerHTML = ''; 
-
-            // 1. Join Dữ liệu
-            let enrichedData = Profile.map(p => {
-                if (!isAdmin && p.AccountUpdate != currentUser.UserID) return null;
-                const folderObj = Folder.find(f => f.FolderID == p.FolderID);
-
-                return {
-                    ...p,
-                    SchoolYearName: findName(SchoolYear, 'SchoolYearID', p.SchoolYearID, 'SchoolYearName'),
-                    FolderName: findName(Folder, 'FolderID', p.FolderID, 'FolderName'),
-                    SubjectName: findName(Subject, 'SubjectID', p.SubjectID, 'SubjectName'),
-                    BlockName: findName(Block, 'BlockID', p.BlockID, 'BlockName'),
-                    ObjectName: findName(ObjectList, 'ObjectID', p.ObjectID, 'ObjectName'),
-                    DocTypeName: findName(DocType, 'DocTypeID', p.DocTypeID, 'DocTypeName'),
-                    UserName: findName(User, 'UserID', p.AccountUpdate, 'Name'),
-                    isUploaded: p.FileID && p.FileID !== "",
-                    Deadline: folderObj && folderObj.Deadline ? folderObj.Deadline : null
-                };
-            }).filter(item => item !== null);
-
-            updateStats(enrichedData);
-
-            // 2. Gom nhóm theo Năm học
-            const yearGroups = groupBy(enrichedData, 'SchoolYearName');
-            
-            if (Object.keys(yearGroups).length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding:50px;">Không có dữ liệu.</div>';
-                return;
-            }
-
-            for (const [year, yearItems] of Object.entries(yearGroups)) {
-                const lv1 = createAccordion(year, 'Năm học', 1);
-                const lv1Content = lv1.querySelector('.level-content');
-
-                // 3. Gom nhóm theo Kỳ kiểm tra
-                const folderGroups = groupBy(yearItems, 'FolderName');
-
-                for (const [folder, folderItems] of Object.entries(folderGroups)) {
-                    const lv2 = createAccordion(folder, 'Kỳ', 2);
-                    const lv2Content = lv2.querySelector('.level-content');
-                    
-                    // Render Bảng trực tiếp
-                    const tableHtml = renderTable(folderItems, isAdmin);
-                    lv2Content.appendChild(tableHtml);
-                    
-                    lv1Content.appendChild(lv2);
-                }
-                container.appendChild(lv1);
-            }
-        }
-
-        function renderTable(items, isAdmin) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'table-responsive';
-
-            // 1. SẮP XẾP CHUẨN: Môn -> Khối -> Đối tượng -> Loại
-            items.sort((a, b) => {
-                const subDiff = a.SubjectName.localeCompare(b.SubjectName);
-                if (subDiff !== 0) return subDiff;
-
-                const blkDiff = a.BlockName.localeCompare(b.BlockName);
-                if (blkDiff !== 0) return blkDiff;
-
-                const objDiff = a.ObjectName.localeCompare(b.ObjectName);
-                if (objDiff !== 0) return objDiff;
-
-                return a.DocTypeID - b.DocTypeID;
-            });
-
-            // Header
-            let tableHeader = `
-                <thead>
-                    <tr>
-                        <th style="width: 40px;">#</th>
-                        <th>Môn học</th>
-                        <th>Khối</th>
-                        <th>Đối tượng</th>
-                        <th>Nội dung hồ sơ</th>
-                        ${isAdmin ? '<th>Giáo viên</th>' : ''}
-                        <th>Trạng thái</th>
-                        <th style="width: 100px; text-align:right;">Thao tác</th>
-                    </tr>
-                </thead>
-            `;
-
-            let tableBody = '<tbody>';
-
-            // Biến tạm để kiểm tra trùng lặp
-            let prevSubject = null;
-            let prevBlock = null;
-            let prevObject = null;
-
-            items.forEach((item, index) => {
-                // Logic Check Ẩn/Hiện dòng trùng
-                let showSubject = false;
-                let showBlock = false;
-                let showObject = false;
-
-                if (item.SubjectName !== prevSubject) {
-                    showSubject = true; showBlock = true; showObject = true;
-                } else if (item.BlockName !== prevBlock) {
-                    showBlock = true; showObject = true;
-                } else if (item.ObjectName !== prevObject) {
-                    showObject = true;
-                }
-
-                prevSubject = item.SubjectName;
-                prevBlock = item.BlockName;
-                prevObject = item.ObjectName;
-
-                // Class ẩn cell
-                const subCellClass = showSubject ? '' : 'cell-hidden';
-                const subCellContent = showSubject ? `<span class="table-badge badge-subject">${item.SubjectName}</span>` : '';
-
-                const blkCellClass = showBlock ? '' : 'cell-hidden';
-                const blkCellContent = showBlock ? `<span class="table-badge badge-block">${item.BlockName}</span>` : '';
-
-                const objCellClass = showObject ? '' : 'cell-hidden';
-                const objCellContent = showObject ? `<span class="table-badge badge-object">${item.ObjectName}</span>` : '';
-
-                // Deadline & Status
-                let isExpired = false;
-                if (item.Deadline) {
-                    const deadlineDate = new Date(item.Deadline);
-                    deadlineDate.setHours(23, 59, 59);
-                    if (new Date() > deadlineDate) isExpired = true;
-                }
-                const isUploaded = item.isUploaded;
-
-                let statusHtml = isUploaded 
-                    ? `<span style="color:#00b09b;">✔ ${formatDateTimeFull(item.TimeUpdate)}</span>`
-                    : `<span style="color:#e74c3c;">⏳ Chưa nộp</span>`;
-
-                // Buttons Icon
-                let actionBtns = '';
-                const downloadBtn = isUploaded 
-                    ? `<button class="btn-icon download" title="Tải về" onclick="downloadFile('${item.FileID}', '${item.ProfileID}')">📥</button>` 
-                    : '';
-
-                if (isAdmin) {
-                    actionBtns += downloadBtn;
-                    if (isUploaded) actionBtns += `<button class="btn-icon delete-file" title="Xóa file" onclick="adminDeleteFile('${item.ProfileID}')">🗑</button>`;
-                    actionBtns += `<button class="btn-icon delete-row" title="Xóa dòng" onclick="adminDeleteRow('${item.ProfileID}')">✕</button>`;
-                } else {
-                    if (isExpired) {
-                        actionBtns = isUploaded 
-                            ? `${downloadBtn} <span class="status-expired">🔒</span>` 
-                            : `<span class="status-expired">Hết hạn</span>`;
-                    } else {
-                        if (isUploaded) {
-                            actionBtns = `${downloadBtn} <button class="btn-icon edit" title="Thay thế" onclick="triggerDirectUpload('${item.ProfileID}')">✎</button>`;
-                        } else {
-                            actionBtns = `<button class="btn-icon upload" title="Nộp file" onclick="triggerDirectUpload('${item.ProfileID}')">📤</button>`;
-                        }
-                    }
-                }
-
-                // Render Dòng
-                tableBody += `
-                    <tr>
-                        <td style="text-align:center; color:#ccc;">${index + 1}</td>
-                        <td class="${subCellClass}">${subCellContent}</td>
-                        <td class="${blkCellClass}">${blkCellContent}</td>
-                        <td class="${objCellClass}">${objCellContent}</td>
-                        
-                        <td>
-                            <span>${item.DocTypeName}</span>
-                            ${item.Note ? `<br><small class="text-muted">📝 ${item.Note}</small>` : ''}
-                        </td>
-                        
-                        ${isAdmin ? `<td>👤 ${item.UserName}</td>` : ''}
-                        
-                        <td style="font-size:0.85rem;">
-                            ${statusHtml}
-                            ${item.Deadline ? `<div class="text-muted" style="font-size:0.75rem;">Hạn: ${formatDate(item.Deadline)}</div>` : ''}
-                        </td>
-                        <td><div class="cell-actions">${actionBtns}</div></td>
-                    </tr>
-                `;
-            });
-
-            tableBody += '</tbody>';
-            const table = document.createElement('table');
-            table.className = 'data-table';
-            table.innerHTML = tableHeader + tableBody;
-
-            wrapper.appendChild(table);
-            return wrapper;
-        }
     </script>
 </body>
 </html>
