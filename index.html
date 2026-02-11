@@ -3,349 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UpFile Manager</title>
+    <title>Dashboard - UpFile System</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
-    <div id="loading" class="hidden">
-        <div class="spinner"></div>
-        <p style="margin-top:15px; font-weight:500; color:#64748b">Đang tải dữ liệu...</p>
-    </div>
 
-    <header class="top-bar">
-        <div class="brand-area">
-            <div class="brand-logo">UPFILE</div>
-            <div class="page-title">Quản lý hồ sơ chuyên môn</div>
+    <header class="dashboard-header">
+        <div class="brand-section">
+            <div class="brand-logo">🚀 UpFile</div>
+            <a href="assign.html" id="btnAssign" class="btn btn-primary btn-sm" style="display:none; box-shadow:none;">
+                + Phân công
+            </a>
         </div>
 
-        <div class="user-area">
-            <div class="user-badge">
-                <span class="u-name" id="user-name">Loading...</span>
-                <span class="u-role" id="user-perm">User</span>
+        <div class="stats-group">
+            <div class="stat-pill" title="Tổng số mục cần nộp">
+                <span>Tổng:</span>
+                <span id="statTotal" class="stat-val bg-blue">0</span>
             </div>
-            
-            <button id="btn-assign" class="btn-action hidden" onclick="ui.showModal('modal-assign')">
-                + Phân công
-            </button>
-            <button class="btn-outline" onclick="app.logout()">Thoát</button>
+            <div class="stat-pill" title="Đã hoàn thành">
+                <span>Đã nộp:</span>
+                <span id="statDone" class="stat-val bg-green">0</span>
+            </div>
+            <div class="stat-pill" title="Chưa hoàn thành">
+                <span>Chưa nộp:</span>
+                <span id="statPending" class="stat-val bg-red">0</span>
+            </div>
+        </div>
+
+        <div class="user-section">
+            <div class="user-info-text">
+                <span class="user-name" id="displayUserName">Đang tải...</span>
+                <span class="user-role-badge" id="displayUserRole">...</span>
+            </div>
+            <div class="user-avatar" id="userAvatar">U</div>
+            <button onclick="logout()" class="btn-logout-icon" title="Đăng xuất">⏻</button>
         </div>
     </header>
 
-    <div class="container-fluid">
-        <div id="empty-state" class="hidden" style="text-align:center; padding: 60px; color: #94a3b8;">
-            <svg width="60" height="60" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-bottom:10px;">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-            <p>Hiện chưa có hồ sơ nào.</p>
+    <main class="main-container">
+        <div id="dashboardContent" class="accordion-wrapper">
+            <div style="text-align: center; margin-top: 50px; color: #999;">
+                <p>Đang tải dữ liệu hồ sơ...</p>
+                <div class="loading-spinner"></div>
+            </div>
         </div>
+    </main>
 
-        <div id="tree-container"></div>
-    </div>
-
-    <div id="modal-upload" class="modal hidden">
-        <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3 style="margin:0; color:var(--primary)">Nộp tài liệu</h3>
-                <span style="cursor:pointer; font-size:24px;" onclick="ui.closeModal('modal-upload')">&times;</span>
-            </div>
-            
-            <p style="background:#f1f5f9; padding:10px; border-radius:6px; font-size:13px; margin-bottom:20px;">
-                Mục: <b id="lbl-doc-name" style="color:var(--text-main)">...</b>
-            </p>
-            <input type="hidden" id="upload-profile-id">
-            
-            <div class="inp-group">
-                <input type="file" id="file-input" class="inp-full" style="padding:15px; border:2px dashed #cbd5e1;">
-            </div>
-            <button class="btn-action" style="width:100%" onclick="processUpload()">Xác nhận nộp</button>
-        </div>
-    </div>
-
-    <div id="modal-assign" class="modal hidden">
-        <div class="modal-content" style="width: 600px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3 style="margin:0;">Phân công mới</h3>
-                <span style="cursor:pointer;" onclick="ui.closeModal('modal-assign')">&times;</span>
-            </div>
-
-            <div class="grid-2">
-                <div class="inp-group"><label>Năm học</label><select id="as-year" class="inp-full"></select></div>
-                <div class="inp-group"><label>Kỳ kiểm tra</label><select id="as-folder" class="inp-full"></select></div>
-                <div class="inp-group"><label>Môn học</label><select id="as-subject" class="inp-full"></select></div>
-                <div class="inp-group"><label>Khối lớp</label><select id="as-block" class="inp-full"></select></div>
-            </div>
-            <div class="grid-2">
-                <div class="inp-group"><label>Đối tượng</label><select id="as-object" class="inp-full"></select></div>
-                <div class="inp-group"><label>Nội dung</label><select id="as-doctype" class="inp-full"></select></div>
-            </div>
-            <div class="inp-group">
-                <label>Giáo viên thực hiện</label>
-                <select id="as-teacher" class="inp-full"></select>
-            </div>
-            
-            <button class="btn-action" style="width:100%; margin-top:10px;" onclick="processAssign()">Lưu phân công</button>
-        </div>
-    </div>
+    <input type="file" id="globalFileInput" style="display: none;" onchange="handleFileSelected(this)">
+    <input type="hidden" id="currentProfileID">
 
     <script src="script.js"></script>
     <script>
-        // --- LOGIC HIỂN THỊ UI ---
-        const currentUser = app.checkAuth();
-        let allData = {};
-
-        if (currentUser) {
-            // 1. Show User Info & Permissions
-            document.getElementById('user-name').innerText = currentUser.Name || currentUser.Account;
-            // Hiển thị Quyền: nếu dài quá thì cắt bớt hoặc hiển thị Role
-            const perm = currentUser.Permissions || "User";
-            document.getElementById('user-perm').innerText = perm.length > 20 ? "Custom Role" : perm;
-
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
             loadDashboardData();
-        }
-
-        async function loadDashboardData() {
-            ui.loading(true);
-            const res = await app.callAPI('GET_DATA');
-            ui.loading(false);
-
-            if (res.success) {
-                allData = res.data;
-                renderTree();
-                if (isAdmin()) {
-                    document.getElementById('btn-assign').classList.remove('hidden');
-                    populateAssignModal();
-                }
-            } else {
-                alert("Lỗi kết nối server");
-            }
-        }
-
-        function isAdmin() {
-            // Logic check admin
-            const p = app.safeString(currentUser.Permissions);
-            const acc = app.safeString(currentUser.Account);
-            return (acc === 'admin' || p.includes('ALL'));
-        }
-
-        // --- RENDER LOGIC: 7 CẤP (Admin) / 6 CẤP (User) ---
-        function renderTree() {
-            const container = document.getElementById('tree-container');
-            container.innerHTML = '';
-
-            let profiles = allData.Profile || [];
-            
-            // 1. Lọc dữ liệu
-            if (!isAdmin()) {
-                // User thường: Chỉ lấy bài của chính mình
-                const uid = app.safeString(currentUser.UserID);
-                profiles = profiles.filter(p => app.safeString(p.AccountUpdate) === uid);
-            }
-
-            if (profiles.length === 0) {
-                document.getElementById('empty-state').classList.remove('hidden');
-                return;
-            } else {
-                document.getElementById('empty-state').classList.add('hidden');
-            }
-
-            // 2. Mapping tên (Bổ sung thêm UserName cho Cấp 6)
-            const enriched = profiles.map(p => ({
-                ...p,
-                SchoolYearName: getName('SchoolYear', 'SchoolYearID', 'SchoolName', p.SchoolYearID),
-                FolderName: getName('Folder', 'FolderID', 'FolderName', p.FolderID),
-                SubjectName: getName('Subject', 'SubjectID', 'SubjectName', p.SubjectID),
-                BlockName: getName('Block', 'BlockID', 'BlockName', p.BlockID),
-                ObjectName: getName('Object', 'ObjectID', 'ObjectName', p.ObjectID),
-                DocTypeName: getName('DocType', 'DocTypeID', 'DocTypeName', p.DocTypeID),
-                UserName: getName('User', 'UserID', 'Name', p.AccountUpdate) // <--- MỚI: Lấy tên giáo viên
-            }));
-
-            // Hàm Group By
-            const groupBy = (arr, key) => arr.reduce((acc, i) => { (acc[i[key]] = acc[i[key]] || []).push(i); return acc; }, {});
-
-            // --- BẮT ĐẦU VÒNG LẶP GROUP ---
-            
-            // CẤP 1: NĂM HỌC
-            const lv1 = groupBy(enriched, 'SchoolYearName');
-            for (const [k1, v1] of Object.entries(lv1)) {
-                const d1 = document.createElement('div');
-                d1.className = 'lvl-1-box';
-                d1.innerHTML = `
-                    <div class="lvl-1-header" onclick="toggleNode(this)">
-                        <span class="lvl-1-title"><span class="arrow"></span> ${k1}</span>
-                        <span class="badge" style="background:#f1f5f9; color:#64748b">${v1.length} hồ sơ</span>
-                    </div>
-                    <div class="sub-lvl-content"></div>`;
-                const c1 = d1.querySelector('.sub-lvl-content');
-
-                // CẤP 2: KỲ KIỂM TRA
-                const lv2 = groupBy(v1, 'FolderName');
-                for (const [k2, v2] of Object.entries(lv2)) {
-                    const d2 = createSubNode(k2, 'lvl-2-header');
-                    const c2 = d2.querySelector('.sub-lvl-content');
-
-                    // CẤP 3: MÔN HỌC
-                    const lv3 = groupBy(v2, 'SubjectName');
-                    for (const [k3, v3] of Object.entries(lv3)) {
-                        const d3 = createSubNode(k3, 'lvl-3-header');
-                        const c3 = d3.querySelector('.sub-lvl-content');
-
-                        // CẤP 4: KHỐI LỚP
-                        const lv4 = groupBy(v3, 'BlockName');
-                        for (const [k4, v4] of Object.entries(lv4)) {
-                            const d4 = createSubNode(k4, 'lvl-4-header');
-                            const c4 = d4.querySelector('.sub-lvl-content');
-
-                            // CẤP 5: ĐỐI TƯỢNG
-                            const lv5 = groupBy(v4, 'ObjectName');
-                            for (const [k5, v5] of Object.entries(lv5)) {
-                                const d5 = createSubNode(k5, 'lvl-5-header');
-                                const c5 = d5.querySelector('.sub-lvl-content');
-
-                                // --- RẼ NHÁNH TẠI ĐÂY ---
-                                if (isAdmin()) {
-                                    // >>> ADMIN VIEW: CẤP 6 LÀ NGƯỜI DÙNG (Giáo viên) <<<
-                                    const lv6 = groupBy(v5, 'UserName');
-                                    for (const [k6, v6] of Object.entries(lv6)) {
-                                        // Tạo node Cấp 6 riêng
-                                        const d6 = document.createElement('div');
-                                        d6.innerHTML = `
-                                            <div class="sub-header lvl-6-header" onclick="toggleNode(this)">
-                                                <span class="arrow"></span> 👤 GV: ${k6}
-                                            </div>
-                                            <div class="sub-lvl-content lvl-6-content"></div>`;
-                                        const c6 = d6.querySelector('.sub-lvl-content');
-
-                                        // CẤP 7: NỘI DUNG (Item)
-                                        v6.forEach(item => {
-                                            c6.appendChild(createItemRow(item));
-                                        });
-                                        c5.appendChild(d6);
-                                    }
-                                } else {
-                                    // >>> USER VIEW: KHÔNG CÓ CẤP 6 (Vào thẳng Item) <<<
-                                    v5.forEach(item => {
-                                        c5.appendChild(createItemRow(item));
-                                    });
-                                }
-                                // -------------------------
-
-                                c4.appendChild(d5);
-                            }
-                            c3.appendChild(d4);
-                        }
-                        c2.appendChild(d3);
-                    }
-                    c1.appendChild(d2);
-                }
-                container.appendChild(d1);
-            }
-        }
-                
-
-        // Helper render
-        function createSubNode(title, headerClass) {
-            const div = document.createElement('div');
-            div.innerHTML = `
-                <div class="sub-header ${headerClass}" onclick="toggleNode(this)">
-                    <span class="arrow"></span> ${title}
-                </div>
-                <div class="sub-lvl-content"></div>`;
-            return div;
-        }
-
-        function toggleNode(el) {
-            el.classList.toggle('collapsed');
-            const content = el.nextElementSibling;
-            if (content.style.display === "none") {
-                content.style.display = "block";
-            } else {
-                content.style.display = "none";
-            }
-        }
-
-        function createItemRow(item) {
-            const div = document.createElement('div');
-            div.className = 'item-row';
-            const fid = item['File ID'] || item['FileID'];
-            const hasFile = fid && String(fid).trim() !== '';
-
-            let statusHtml = '';
-            if (hasFile) {
-                statusHtml = `<div class="badge b-success">✓ Đã nộp <span class="time-stamp">${app.formatDate(item.TimeUpdate)}</span></div>`;
-            } else {
-                statusHtml = `<div style="display:flex; align-items:center; gap:10px;">
-                                <span class="badge b-missing">Chưa nộp</span>
-                                <button class="btn-action" style="padding:4px 10px; font-size:11px;" 
-                                onclick="openUpload('${item.ProfileID}', '${item.DocTypeName}')">Nộp ngay</button>
-                              </div>`;
-            }
-            div.innerHTML = `<span class="doc-name">📄 ${item.DocTypeName}</span> ${statusHtml}`;
-            return div;
-        }
-
-        function getName(table, idCol, nameCol, val) {
-            const valStr = app.safeString(val);
-            if (!allData[table]) return val;
-            const found = allData[table].find(x => app.safeString(x[idCol]) === valStr);
-            return found ? found[nameCol] : val;
-        }
-
-        // --- UPLOAD & ASSIGN giữ nguyên logic cũ ---
-        function openUpload(pid, name) {
-            document.getElementById('upload-profile-id').value = pid;
-            document.getElementById('lbl-doc-name').innerText = name;
-            ui.showModal('modal-upload');
-        }
-        async function processUpload() { /* Logic cũ */ 
-             const fileInp = document.getElementById('file-input');
-            if(fileInp.files.length === 0) return alert('Vui lòng chọn file!');
-            const file = fileInp.files[0];
-            const reader = new FileReader();
-            ui.loading(true);
-            reader.onload = async function(e) {
-                const res = await app.callAPI('UPLOAD', {
-                    fileData: e.target.result, fileName: file.name,
-                    profileId: document.getElementById('upload-profile-id').value, userId: currentUser.UserID
-                });
-                ui.loading(false);
-                if(res.success) { alert('Thành công!'); ui.closeModal('modal-upload'); loadDashboardData(); }
-                else { alert('Lỗi: ' + res.message); }
-            };
-            reader.readAsDataURL(file);
-        }
-        function populateAssignModal() { /* Logic cũ */ 
-             const fill = (id, table, val, txt) => {
-                const s = document.getElementById(id); s.innerHTML = '';
-                if(allData[table]) allData[table].forEach(x => {
-                    s.innerHTML += `<option value="${x[val]}">${x[txt]}</option>`;
-                });
-            };
-            fill('as-year', 'SchoolYear', 'SchoolYearID', 'SchoolName');
-            fill('as-folder', 'Folder', 'FolderID', 'FolderName');
-            fill('as-subject', 'Subject', 'SubjectID', 'SubjectName');
-            fill('as-block', 'Block', 'BlockID', 'BlockName');
-            fill('as-object', 'Object', 'ObjectID', 'ObjectName');
-            fill('as-doctype', 'DocType', 'DocTypeID', 'DocTypeName');
-            fill('as-teacher', 'User', 'UserID', 'Name');
-        }
-        async function processAssign() { /* Logic cũ */ 
-             const data = {
-                SchoolYearID: document.getElementById('as-year').value,
-                FolderID: document.getElementById('as-folder').value,
-                SubjectID: document.getElementById('as-subject').value,
-                BlockID: document.getElementById('as-block').value,
-                ObjectID: document.getElementById('as-object').value,
-                DocTypeID: document.getElementById('as-doctype').value,
-                AccountUpdate: document.getElementById('as-teacher').value
-            };
-            ui.loading(true);
-            const res = await app.callAPI('ASSIGN', { data: data, adminId: currentUser.UserID });
-            ui.loading(false);
-            if(res.success) { alert('Đã phân công!'); ui.closeModal('modal-assign'); loadDashboardData(); }
-            else { alert('Lỗi: ' + res.message); }
-        }
+        });
     </script>
 </body>
 </html>
