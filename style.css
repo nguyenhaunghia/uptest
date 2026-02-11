@@ -47,7 +47,7 @@ body.login-page-body {
 .btn-block { width: 100%; display: block; padding: 12px; font-size: 1rem; }
 
 /* =========================================
-   3. STYLE CHO DASHBOARD (INDEX)
+   3. STYLE CHO DASHBOARD (CHUNG)
    ========================================= */
 /* Header */
 .dashboard-header {
@@ -68,7 +68,7 @@ body.login-page-body {
 .bg-green { background: var(--success); }
 .bg-red { background: var(--danger); }
 
-/* --- NEW: USER SECTION LUNG LINH --- */
+/* User Section */
 .user-section { display: flex; align-items: center; gap: 12px; padding: 5px 10px; border-radius: 30px; transition: 0.3s; }
 
 .user-avatar {
@@ -104,11 +104,11 @@ body.login-page-body {
 .level-content { display: none; padding-left: 15px; padding-top: 5px; }
 .level-content.show { display: block; animation: fadeIn 0.3s ease; }
 
-.level-group.level-1 { background: var(--white); border-radius: 12px; box-shadow: var(--shadow); border: none; margin-bottom: 15px; overflow: hidden; }
+.level-group.level-1 { background: var(--white); border-radius: 12px; box-shadow: var(--shadow); border: none; margin-bottom: 2px; overflow: hidden; }
 .level-1 > .level-header { background: var(--primary-gradient); color: white; padding: 15px 20px; font-size: 1.1rem; }
 .level-1 > .level-header:hover { padding-left: 20px; opacity: 0.95; }
 
-/* Level 7 Items */
+/* Level 7 Items (cho Index 1) */
 .level-7-list { background: var(--white); border-radius: 8px; margin-top: 5px; padding: 5px; box-shadow: inset 0 0 10px rgba(0,0,0,0.02); }
 .doc-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid #f1f1f1; }
 .doc-item:last-child { border-bottom: none; }
@@ -123,7 +123,7 @@ body.login-page-body {
 .btn-danger { background: var(--danger); color: white; }
 .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
 
-/* --- NEW: BUTTON UPLOAD TRỰC TIẾP --- */
+/* Nút Upload Text (giữ lại cho tương thích cũ) */
 .btn-upload-direct {
     display: flex; align-items: center; gap: 6px;
     padding: 6px 12px; border-radius: 6px;
@@ -136,7 +136,7 @@ body.login-page-body {
 .btn-upload-direct.edit:hover { background: #ffca28; color: #fff; }
 .status-expired { color: #999; font-style: italic; background: #eee; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
 
-/* Modal & Animation (Giữ lại cho modal Change Password) */
+/* Modal & Animation */
 .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
 .modal.show { display: flex; }
 .modal-content { background: white; width: 500px; padding: 30px; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -163,32 +163,76 @@ body.login-page-body {
 @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes fadeOut { to { opacity: 0; transform: translateX(50px); } }
 
-
-
-/* --- ICON BUTTON STYLES (New) --- */
+/* --- STYLE NÚT ICON (MỚI) --- */
 .btn-icon {
-    width: 34px; height: 34px;
+    width: 24px; height: 24px;
     display: flex; align-items: center; justify-content: center;
-    border-radius: 4px; border: 1px solid transparent;
+    border-radius: 2px; border: 1px solid transparent;
     cursor: pointer; font-size: 1.1rem; transition: 0.2s;
     background: white;
 }
-
-/* Màu sắc từng loại nút */
 .btn-icon.upload { color: #fff; background: var(--primary); border-color: var(--primary); }
 .btn-icon.upload:hover { background: #3b40a3; }
-
 .btn-icon.download { color: #2d3436; border-color: #dfe6e9; }
 .btn-icon.download:hover { background: #f1f2f6; color: var(--primary); }
-
 .btn-icon.edit { color: #fff; background: #f39c12; border-color: #e67e22; }
 .btn-icon.edit:hover { background: #d35400; }
-
 .btn-icon.delete-file { color: #c0392b; background: #fff0f0; border-color: #fab1a0; }
 .btn-icon.delete-file:hover { background: #c0392b; color: white; }
-
 .btn-icon.delete-row { color: #fff; background: #2c3e50; border-color: #34495e; }
 .btn-icon.delete-row:hover { background: #000; }
 
-/* Status Text nhỏ lại cho gọn */
 .status-text-small { font-size: 0.75rem; color: #666; font-style: italic; margin-left: 8px; }
+
+/* --- TABLE STYLES CHO INDEX 2 (GỘP Ô) --- */
+.table-responsive {
+    overflow-x: auto;
+    background: white;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+.data-table th {
+    background: #f8f9fa;
+    color: var(--secondary);
+    font-weight: 600;
+    text-align: left;
+    padding: 12px 12px;
+    border-bottom: 2px solid var(--border-color);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+.data-table td {
+    padding: 5px 15px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle; /* Căn trên để nội dung không bị trôi khi gộp ô */
+    color: var(--text-dark);
+    font-weight: 400; /* Bỏ in đậm */
+    background: white; /* Nền trắng để che border nếu cần */
+}
+.data-table tr:hover td { background-color: #f1f3f9; } /* Hover effect */
+.data-table tr:last-child td { border-bottom: none; }
+
+.cell-actions { display: flex; gap: 5px; align-items: center; justify-content: flex-end; }
+
+/* Badge trong bảng */
+.table-badge {
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    display: inline-block;
+}
+.badge-subject { background: #e3f2fd; color: #1565c0; }
+.badge-block { background: #f3e5f5; color: #7b1fa2; }
+.badge-object { background: #e0f2f1; color: #00695c; }
+
+/* Class ẩn nội dung và border-top khi trùng lặp */
+.cell-hidden {
+    border-top: none !important;
+    color: transparent; /* Ẩn chữ đi để an toàn */
+}
