@@ -1,0 +1,171 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --primary: #4f46e5;
+    --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%);
+    --bg-body: #f8fafc;
+    --glass: rgba(255, 255, 255, 0.95);
+    --border: #e2e8f0;
+    --text-main: #1e293b;
+    --text-sub: #64748b;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --radius: 8px;
+}
+
+* { box-sizing: border-box; }
+body { 
+    font-family: 'Inter', sans-serif; 
+    background-color: var(--bg-body); 
+    color: var(--text-main); 
+    margin: 0; 
+    font-size: 14px; 
+    overflow-x: hidden; /* Tránh thanh cuộn ngang */
+}
+
+.hidden { display: none !important; }
+
+/* --- 1. HEADER COMPACT & GLASS --- */
+.top-bar {
+    position: sticky; top: 0; z-index: 100;
+    width: 100%; height: 60px;
+    background: var(--glass);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.brand-area { display: flex; align-items: center; gap: 15px; }
+.brand-logo { 
+    font-weight: 800; font-size: 20px; 
+    background: var(--primary-gradient); 
+    -webkit-background-clip: text; 
+    -webkit-text-fill-color: transparent; 
+}
+.page-title { font-weight: 500; color: var(--text-sub); padding-left: 15px; border-left: 1px solid #cbd5e1; }
+
+.user-area { display: flex; align-items: center; gap: 15px; }
+
+/* User Badge style */
+.user-badge {
+    display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2;
+}
+.u-name { font-weight: 600; font-size: 14px; color: var(--text-main); }
+.u-role { font-size: 11px; color: var(--primary); background: #e0e7ff; padding: 2px 6px; border-radius: 4px; font-weight: 500; }
+
+/* Buttons */
+.btn-action {
+    background: var(--primary-gradient); color: white; border: none;
+    padding: 8px 16px; border-radius: 20px; font-weight: 500; cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); transition: 0.2s;
+}
+.btn-action:hover { transform: translateY(-1px); box-shadow: 0 6px 8px -1px rgba(79, 70, 229, 0.3); }
+.btn-outline {
+    background: transparent; border: 1px solid #cbd5e1; color: var(--text-sub);
+    padding: 7px 14px; border-radius: 20px; cursor: pointer; transition: 0.2s;
+}
+.btn-outline:hover { border-color: var(--text-main); color: var(--text-main); }
+
+/* --- 2. MAIN CONTAINER FULL WIDTH --- */
+.container-fluid {
+    width: 100%;
+    padding: 20px; /* Cách lề một chút cho thoáng */
+}
+
+/* --- 3. TREE VIEW STYLING (6 CẤP) --- */
+
+/* Cấp 1: Năm học - Card Container */
+.lvl-1-box {
+    background: white; border-radius: var(--radius); 
+    box-shadow: var(--shadow-sm); margin-bottom: 20px;
+    border: 1px solid var(--border); overflow: hidden;
+}
+.lvl-1-header {
+    background: linear-gradient(to right, #f8fafc, #fff);
+    padding: 12px 20px; cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+}
+.lvl-1-title { font-size: 16px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px;}
+
+/* Icon mũi tên chung */
+.arrow::before { content: '▼'; font-size: 10px; color: #94a3b8; transition: transform 0.2s; display: inline-block;}
+.collapsed .arrow::before { transform: rotate(-90deg); }
+
+/* Cấp 2, 3, 4, 5: Indentation */
+.sub-lvl-content { padding-left: 20px; border-left: 1px solid #e2e8f0; margin-left: 10px; display: block; }
+.sub-header {
+    padding: 8px 10px; margin: 4px 0; border-radius: 4px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; font-weight: 500; color: #334155; transition: 0.1s;
+}
+.sub-header:hover { background-color: #f1f5f9; color: var(--primary); }
+
+/* Phân biệt màu sắc nhẹ cho các cấp để dễ nhìn */
+.lvl-2-header { font-weight: 600; color: #0f172a; }
+.lvl-3-header { color: #334155; }
+.lvl-4-header { font-size: 13px; color: #475569; font-style: italic; }
+.lvl-6-header {
+    background: linear-gradient(to right, #f0fdf4, #ffffff); /* Màu xanh lá rất nhạt */
+    color: #15803d; /* Text màu xanh lá đậm */
+    font-weight: 600;
+    font-size: 13px;
+    border-left: 3px solid #22c55e;
+    padding: 6px 10px;
+    margin: 4px 0 4px 10px; /* Thụt vào một chút */
+    border-radius: 0 4px 4px 0;
+}
+.lvl-6-header:hover {
+    background: #dcfce7;
+}
+
+/* Style cho Level 7 (Item) khi nằm trong Level 6 */
+.lvl-6-content {
+    padding-left: 15px;
+    border-left: 1px dashed #bbf7d0;
+    margin-left: 15px;
+}
+.item-row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: white; padding: 10px 15px; margin-top: 5px; margin-left: 20px;
+    border: 1px solid #f1f5f9; border-radius: 6px; 
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02); transition: 0.2s;
+}
+.item-row:hover { transform: translateX(5px); border-color: var(--primary); }
+.doc-name { font-weight: 500; font-size: 13px; color: #1e293b; }
+
+/* Status Badges */
+.badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.b-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+.b-missing { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+.time-stamp { font-weight: 400; text-transform: none; color: #64748b; margin-left: 5px; }
+
+/* --- 4. MODAL --- */
+.modal {
+    position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); 
+    backdrop-filter: blur(4px); z-index: 1000;
+    display: flex; justify-content: center; align-items: center;
+}
+.modal-content {
+    background: white; padding: 30px; border-radius: 16px; 
+    width: 500px; max-width: 90%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    position: relative; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* Inputs in Modal */
+.inp-group { margin-bottom: 15px; }
+.inp-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 12px; color: var(--text-sub); }
+.inp-full { 
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; 
+    font-size: 14px; transition: 0.2s; outline: none; 
+}
+.inp-full:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+/* Spinner */
+#loading { position: fixed; inset: 0; background: white; z-index: 2000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

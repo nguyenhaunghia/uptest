@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Đăng nhập UpFile</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loading" class="hidden"><div class="spinner"></div></div>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="brand-title">UPFILE</div>
+            <p style="text-align:center; color:#6b7280; margin-bottom:20px;">Quản lý hồ sơ chuyên môn</p>
+            
+            <input type="text" id="acc" class="inp-full" placeholder="Tên đăng nhập">
+            <input type="password" id="pass" class="inp-full" placeholder="Mật khẩu">
+            
+            <div id="msg" style="color:#ef4444; font-size:13px; text-align:center; margin-bottom:15px; min-height:20px;"></div>
+            
+            <button class="btn-primary" onclick="handleLogin()">ĐĂNG NHẬP</button>
+        </div>
+    </div>
+
+    <div id="modal-change-pass" class="modal hidden">
+        <div class="modal-content">
+            <h3>Đổi mật khẩu bắt buộc</h3>
+            <p style="font-size:13px; color:gray">Mật khẩu mới cần: >8 ký tự, chữ, số, ký tự đặc biệt.</p>
+            <input type="password" id="new-pass" class="inp-full" placeholder="Mật khẩu mới">
+            <input type="password" id="confirm-pass" class="inp-full" placeholder="Nhập lại mật khẩu">
+            <button class="btn-primary" onclick="handleChangePass()">Xác nhận đổi</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let tempUserId = null;
+        async function handleLogin() {
+            const acc = document.getElementById('acc').value;
+            const pass = document.getElementById('pass').value;
+            document.getElementById('msg').innerText = "";
+            
+            ui.loading(true);
+            const res = await app.callAPI('LOGIN', { account: acc, password: pass });
+            ui.loading(false);
+
+            if (res.success) {
+                if (res.requireChangePass) {
+                    tempUserId = res.user.UserID;
+                    ui.showModal('modal-change-pass');
+                } else {
+                    localStorage.setItem('upfile_user', JSON.stringify(res.user));
+                    window.location.href = 'index.html';
+                }
+            } else {
+                document.getElementById('msg').innerText = res.message;
+            }
+        }
+        
+        // (Copy hàm handleChangePass từ phiên bản cũ vào đây)
+        async function handleChangePass() {
+            const p1 = document.getElementById('new-pass').value;
+            const p2 = document.getElementById('confirm-pass').value;
+            const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+            if(p1 !== p2) return alert('Mật khẩu không khớp');
+            if(!regex.test(p1)) return alert('Mật khẩu yếu');
+            ui.loading(true);
+            const res = await app.callAPI('CHANGE_PASS', { userId: tempUserId, newPass: p1 });
+            ui.loading(false);
+            if(res.success) { alert('Thành công. Đăng nhập lại.'); location.reload(); }
+            else alert(res.message);
+        }
+    </script>
+</body>
+</html>
