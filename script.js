@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbxmPYkeDUa1p62OW1QjJNho6HU1y8XvQ3eUDk7p5rKYKLtA6GEh3yQ1411KAH9bzaxh/exec'; 
+const API_URL = 'https://script.google.com/macros/s/AKfycbxW0fZJJD4vZWKjhnUqYaWP0hMe5gWh9BW3435T0ytgf8He6QI6qyp4TBvwqf6cxVJe/exec'; 
 
 let appState = {
     allData: {}
@@ -14,7 +14,7 @@ const ICONS = {
 };
 
 // ============================================================
-// 1. CÁC HÀM UI CƠ BẢN (Loading, Toast, Accordion)
+// 1. CÁC HÀM UI CƠ BẢN
 // ============================================================
 
 function showLoading(msg = 'Đang xử lý...') {
@@ -66,10 +66,8 @@ function createAccordion(title, label, level) {
     const div = document.createElement('div');
     div.className = `level-group level-${level}`;
     
-    // Lấy icon từ map, nếu không có thì dùng label cũ
     const icon = ICONS[label] || label; 
     
-    // Giao diện: Icon + Title (Bỏ chữ label dài dòng)
     div.innerHTML = `
         <div class="level-header" onclick="this.classList.toggle('active'); this.nextElementSibling.classList.toggle('show')">
             <span style="display:flex; align-items:center; gap:10px;">
@@ -98,7 +96,6 @@ function checkAuth() {
 
     const user = JSON.parse(userStr);
     
-    // Hiển thị Header Info
     const nameEl = document.getElementById('displayUserName');
     if(nameEl) nameEl.innerText = user.Name;
     
@@ -134,19 +131,16 @@ async function fetchData() {
 }
 
 // ============================================================
-// 3. XỬ LÝ ACTIONS (Upload, Download, Delete) - NO CONFIRM
+// 3. XỬ LÝ ACTIONS (Upload, Download, Delete)
 // ============================================================
 
-// --- Upload Direct ---
 function triggerDirectUpload(profileID) {
-    // 1. Lưu ProfileID vào hidden input
     const hiddenInput = document.getElementById('currentProfileID');
     if(hiddenInput) hiddenInput.value = profileID;
     
-    // 2. Tìm input file ẩn và kích hoạt click
     const fileInput = document.getElementById('globalFileInput');
     if(fileInput) {
-        fileInput.value = ''; // Reset để sự kiện onchange luôn kích hoạt
+        fileInput.value = ''; 
         fileInput.click();
     } else {
         alert('Lỗi: Không tìm thấy input file hệ thống!');
@@ -159,7 +153,6 @@ async function handleFileSelected(input) {
         const profileID = document.getElementById('currentProfileID').value;
         const user = JSON.parse(localStorage.getItem('upfile_user'));
 
-        // Upload ngay lập tức (Không Confirm)
         showLoading(`Đang nộp: ${file.name}...`);
 
         try {
@@ -174,7 +167,7 @@ async function handleFileSelected(input) {
                     fileName: file.name,
                     mimeType: file.type,
                     data: base64,
-                    ActorID: user.UserID // Gửi ID người thực hiện để log
+                    ActorID: user.UserID 
                 };
 
                 const response = await fetch(API_URL, {
@@ -199,11 +192,9 @@ async function handleFileSelected(input) {
     }
 }
 
-// --- Download ---
 async function downloadFile(fileId, profileID) {
     if (!fileId) return;
     
-    // Gửi log về server
     const user = JSON.parse(localStorage.getItem('upfile_user'));
     fetch(API_URL, {
         method: 'POST',
@@ -219,7 +210,6 @@ async function downloadFile(fileId, profileID) {
     window.open(url, '_blank');
 }
 
-// --- Admin Delete (No Confirm) ---
 async function adminDeleteRow(profileID) {
     showLoading("Đang xóa dòng...");
     const user = JSON.parse(localStorage.getItem('upfile_user'));
@@ -277,7 +267,7 @@ async function adminDeleteFile(profileID) {
 }
 
 // ============================================================
-// 4. RENDER DASHBOARD & LEVEL 7 (ICON BUTTONS)
+// 4. RENDER DASHBOARD
 // ============================================================
 
 async function loadDashboardData() {
@@ -378,7 +368,6 @@ function renderDashboard(data) {
     }
 }
 
-// HÀM RENDER ITEM CUỐI CÙNG (CÓ NÚT ICON)
 function renderLevel7(items) {
     const div = document.createElement('div');
     div.className = 'level-7-list';
@@ -392,7 +381,6 @@ function renderLevel7(items) {
         const row = document.createElement('div');
         row.className = 'doc-item';
         
-        // Check Deadline
         let isExpired = false;
         if (item.Deadline) {
             const deadlineDate = new Date(item.Deadline);
@@ -405,7 +393,6 @@ function renderLevel7(items) {
         let infoHtml = ''; 
         let actionBtn = ''; 
 
-        // 1. INFO HTML
         if (isUploaded) {
             const timeStr = formatDateTimeFull(item.TimeUpdate); 
             infoHtml = `<span class="status-text-small" style="color:#00b09b">✔ Đã nộp: ${timeStr}</span>`;
@@ -413,13 +400,11 @@ function renderLevel7(items) {
             infoHtml = `<span class="status-text-small" style="color:#e74c3c">⏳ Chưa nộp</span>`;
         }
         
-        // 2. ACTION BUTTONS (Icon Only)
         const downloadBtn = isUploaded 
             ? `<button class="btn-icon download" title="Tải về máy" onclick="downloadFile('${item.FileID}', '${item.ProfileID}')">📥</button>` 
             : '';
 
         if (isAdmin) {
-            // ADMIN
             actionBtn += downloadBtn;
             if (isUploaded) {
                 actionBtn += `<button class="btn-icon delete-file" title="Xóa file" onclick="adminDeleteFile('${item.ProfileID}')">🗑</button>`;
@@ -427,7 +412,6 @@ function renderLevel7(items) {
             actionBtn += `<button class="btn-icon delete-row" title="Xóa dòng" onclick="adminDeleteRow('${item.ProfileID}')">✕</button>`;
         } 
         else {
-            // USER
             if (isExpired) {
                 if (isUploaded) {
                     actionBtn = `${downloadBtn} <span class="status-expired">⛔ Đã khóa</span>`;
@@ -436,16 +420,9 @@ function renderLevel7(items) {
                 }
             } else {
                 if (isUploaded) {
-                    // Đã nộp: Download + Edit
-                    actionBtn = `
-                        ${downloadBtn}
-                        <button class="btn-icon edit" title="Thay thế file khác" onclick="triggerDirectUpload('${item.ProfileID}')">✎</button>
-                    `;
+                    actionBtn = `${downloadBtn} <button class="btn-icon edit" title="Thay thế file khác" onclick="triggerDirectUpload('${item.ProfileID}')">✎</button>`;
                 } else {
-                    // Chưa nộp: Upload
-                    actionBtn = `
-                        <button class="btn-icon upload" title="Nộp file ngay" onclick="triggerDirectUpload('${item.ProfileID}')">📤</button>
-                    `;
+                    actionBtn = `<button class="btn-icon upload" title="Nộp file ngay" onclick="triggerDirectUpload('${item.ProfileID}')">📤</button>`;
                 }
             }
         }
@@ -514,7 +491,7 @@ function formatDateTimeFull(dateStr) {
 }
 
 // ============================================================
-// 6. LOGIN PAGE LOGIC
+// 6. LOGIN LOGIC
 // ============================================================
 
 function handleLoginPage() {
@@ -563,7 +540,40 @@ function handleLoginPage() {
         changeForm.addEventListener('submit', (e) => {
             e.preventDefault();
             alert('Chức năng đổi mật khẩu cần gọi API (Chưa cài đặt Backend).');
-            // Logic gọi API đổi pass tương tự login
         });
+    }
+}
+
+// --- THÊM HÀM GOOGLE LOGIN ---
+async function handleCredentialResponse(response) {
+    console.log("Google Token:", response.credential);
+    showLoading('Đang xác thực Google...');
+
+    try {
+        const apiResponse = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ 
+                action: 'googleLogin', 
+                token: response.credential 
+            })
+        });
+        const result = await apiResponse.json();
+        
+        hideLoading();
+
+        if (result.status === 'success') {
+            const user = result.user;
+            showToast(`Xin chào ${user.Name}`, 'success');
+            
+            localStorage.setItem('upfile_user', JSON.stringify(user));
+            setTimeout(() => window.location.href = 'index.html', 1000);
+        } else {
+            showToast(result.message, 'error');
+        }
+
+    } catch (err) {
+        hideLoading();
+        showToast('Lỗi kết nối server!', 'error');
+        console.error(err);
     }
 }
