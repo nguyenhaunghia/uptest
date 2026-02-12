@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đăng nhập - UpFile</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="login-page-body">
     
@@ -24,6 +25,29 @@
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">Đăng Nhập</button>
             </form>
+
+            <div class="separator-container">
+                <div class="separator-line"></div>
+                <span class="separator-text">Hoặc</span>
+                <div class="separator-line"></div>
+            </div>
+
+            <div style="display: flex; justify-content: center;">
+                <div id="g_id_onload"
+                     data-client_id="815880068722-4jisjai08530a68lp3o3fj5v7a9imueo.apps.googleusercontent.com"
+                     data-callback="handleCredentialResponse"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-size="large"
+                     data-theme="outline"
+                     data-text="sign_in_with"
+                     data-shape="rectangular"
+                     data-logo_alignment="left"
+                     data-width="320">
+                </div>
+            </div>
             <div id="loginMessage" style="color:red; text-align:center; margin-top:10px;"></div>
         </div>
     </div>
