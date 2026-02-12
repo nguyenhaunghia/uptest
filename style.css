@@ -46,6 +46,24 @@ body.login-page-body {
 .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(78, 84, 200, 0.1); }
 .btn-block { width: 100%; display: block; padding: 12px; font-size: 1rem; }
 
+/* --- THÊM: Separator cho Google Login --- */
+.separator-container {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    color: #999;
+}
+.separator-line {
+    flex: 1;
+    height: 1px;
+    background-color: #e0e0e0;
+}
+.separator-text {
+    padding: 0 10px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
 /* =========================================
    3. STYLE CHO DASHBOARD (CHUNG)
    ========================================= */
@@ -163,7 +181,7 @@ body.login-page-body {
 @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes fadeOut { to { opacity: 0; transform: translateX(50px); } }
 
-/* --- STYLE NÚT ICON (MỚI) --- */
+/* --- STYLE NÚT ICON --- */
 .btn-icon {
     width: 24px; height: 24px;
     display: flex; align-items: center; justify-content: center;
@@ -209,12 +227,12 @@ body.login-page-body {
 .data-table td {
     padding: 5px 15px;
     border-bottom: 1px solid #eee;
-    vertical-align: middle; /* Căn trên để nội dung không bị trôi khi gộp ô */
+    vertical-align: middle; 
     color: var(--text-dark);
-    font-weight: 400; /* Bỏ in đậm */
-    background: white; /* Nền trắng để che border nếu cần */
+    font-weight: 400; 
+    background: white; 
 }
-.data-table tr:hover td { background-color: #f1f3f9; } /* Hover effect */
+.data-table tr:hover td { background-color: #f1f3f9; } 
 .data-table tr:last-child td { border-bottom: none; }
 
 .cell-actions { display: flex; gap: 5px; align-items: center; justify-content: flex-end; }
@@ -234,5 +252,5 @@ body.login-page-body {
 /* Class ẩn nội dung và border-top khi trùng lặp */
 .cell-hidden {
     border-top: none !important;
-    color: transparent; /* Ẩn chữ đi để an toàn */
+    color: transparent; 
 }
