@@ -3,79 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phân Công - UpFile</title>
+    <title>Phân Công - UpFile System</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="brand">UpFile Admin</div>
-        <div class="user-controls">
-            <a href="index.html" class="btn-text">← Quay lại Dashboard</a>
+
+    <header class="dashboard-header">
+        <div class="brand-section">
+            <div class="brand-logo">🚀 UpFile <span style="font-size:0.9rem; opacity:0.7; font-weight:500;">/ Phân Công</span></div>
+            <a href="index.html" class="btn btn-secondary btn-sm" style="margin-left:10px;"> Quay lại</a>
         </div>
-    </nav>
-
-    <div class="container">
-        <div class="card">
-            <div class="card-header">
-                <h2>Tạo Phân Công Mới</h2>
-                <p>Chọn các thông tin để tạo mục nộp file cho giáo viên.</p>
+        <div class="user-section">
+            <div class="user-info-text">
+                <span class="user-name" id="displayUserName">Admin</span>
+                <span class="user-role-badge admin" id="displayUserRole">Admin</span>
             </div>
-            <div class="card-body">
-                <form id="assignForm">
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Năm học</label>
-                            <select id="selSchoolYear" class="form-control" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Kỳ kiểm tra</label>
-                            <select id="selFolder" class="form-control" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Môn học</label>
-                            <select id="selSubject" class="form-control" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Khối lớp</label>
-                            <select id="selBlock" class="form-control" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Đối tượng áp dụng</label>
-                            <select id="selObject" class="form-control" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Loại văn bản (DocType)</label>
-                            <select id="selDocType" class="form-control" required></select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group mt-2">
-                        <label>Giáo viên thực hiện (Chọn AccountUpdate)</label>
-                        <select id="selUser" class="form-control" required>
-                            <option value="">-- Chọn giáo viên --</option>
-                        </select>
-                    </div>
+            <div class="user-avatar" id="userAvatar">A</div>
+        </div>
+    </header>
 
-                    <div class="form-actions right mt-3">
-                        <button type="submit" class="btn btn-primary btn-lg">Lưu Phân Công</button>
-                    </div>
-                </form>
+    <main class="main-container" style="padding-bottom: 90px;">
+        
+        <div class="card-box">
+            <div class="card-header-title">1. Thiết lập thông tin hồ sơ</div>
+            <div class="filter-grid" id="part1Container">
+                <div class="filter-item">
+                    <label>Năm học <span style="color:red">*</span></label>
+                    <select id="selYear" class="required-select"></select>
+                </div>
+                <div class="filter-item">
+                    <label>Kỳ kiểm tra <span style="color:red">*</span></label>
+                    <select id="selFolder" class="required-select"></select>
+                </div>
+                <div class="filter-item">
+                    <label>Môn học <span style="color:red">*</span></label>
+                    <select id="selSubject" class="required-select"></select>
+                </div>
+                <div class="filter-item">
+                    <label>Khối <span style="color:red">*</span></label>
+                    <select id="selBlock" class="required-select"></select>
+                </div>
+                <div class="filter-item">
+                    <label>Đối tượng <span style="color:red">*</span></label>
+                    <select id="selObject" class="required-select"></select>
+                </div>
             </div>
         </div>
+
+        <div class="card-box section-disabled" id="part2Container">
+            <div class="card-header-title" style="justify-content: space-between;">
+                <span>2. Chọn Giáo viên & Nội dung nộp</span>
+                <small style="color:#666; font-weight:400; font-size:0.9rem;">Tích chọn giáo viên để mở nội dung</small>
+            </div>
+            
+            <div class="assign-table-wrapper">
+                <table class="assign-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px; text-align:center;">Chọn</th>
+                            <th style="width: 250px;">Thông tin Giáo viên</th>
+                            <th>Nội dung (DocType) cần nộp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teacherBody">
+                        <tr>
+                            <td colspan="3" style="text-align: center; padding: 40px; color:#999;">
+                                <div class="spinner" style="margin:0 auto 10px;"></div>
+                                Đang tải danh sách...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <div class="sticky-footer">
+        <button class="btn btn-secondary" onclick="window.location.href='index.html'">Hủy bỏ</button>
+        <button class="btn btn-primary" id="btnSave" onclick="handleSaveAssign()" disabled>💾 Xác nhận & Lưu Phân công</button>
     </div>
 
     <script src="script.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            checkAuth(); 
-            // Chỉ admin mới được vào trang này
-            const user = JSON.parse(localStorage.getItem('upfile_user'));
-            if (!user || user.Permissions !== 'Admin') {
-                alert('Bạn không có quyền truy cập trang này!');
-                window.location.href = 'index.html';
-                return;
+            const userStr = localStorage.getItem('upfile_user');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                if (user.Permissions !== 'Admin') {
+                    // Dùng Toast thay vì Alert
+                    showToast('Bạn không có quyền truy cập trang này!', 'error');
+                    setTimeout(() => window.location.href = 'index.html', 1500); // Chờ 1.5s để xem toast rồi chuyển
+                    return;
+                }
+            } else {
+                window.location.href = 'login.html';
             }
-            loadAssignData(); // Tải dữ liệu để fill vào các select box
+            initAssignPage();
         });
     </script>
 </body>
