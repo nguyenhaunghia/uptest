@@ -5,16 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard List - UpFile System</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+            margin-right: 15px;
+            align-items: center;
+        }
+        
+        .btn-header-report {
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .btn-header-report:hover {
+            background: #f1f2f6;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn-header-report.blue { color: #4e54c8; border-color: #bbdefb; }
+        .btn-header-report.green { color: #00b09b; border-color: #b2f5ea; }
+    </style>
 </head>
 <body>
 
     <header class="dashboard-header">
         <div class="brand-section">
             <div class="brand-logo">🚀 UpFile <span style="font-size:0.8rem; opacity:0.7;">(List View)</span></div>
-            <a href="assign.html" id="btnAssign" class="btn btn-primary btn-sm" style="display:none; box-shadow:none;">
-                + Phân công
-            </a>
-            <a href="indextr.html" class="btn btn-secondary btn-sm" style="margin-left: 10px;">Giao diện Cây</a>
+            <a href="assign.html" id="btnAssign" class="btn btn-primary btn-sm" style="display:none; box-shadow:none;">Phân công</a>
         </div>
 
         <div class="stats-group">
@@ -62,7 +91,7 @@
             loadDashboardData();
         });
 
-        // --- GHI ĐÈ HÀM RENDER DASHBOARD ---
+        // --- RENDER DASHBOARD ---
         function renderDashboard(data) {
             const { Profile, SchoolYear, Folder, Subject, Block, Object: ObjectList, DocType, User } = data;
             const currentUser = JSON.parse(localStorage.getItem('upfile_user'));
@@ -71,7 +100,6 @@
             
             container.innerHTML = ''; 
 
-            // 1. Join Dữ liệu
             let enrichedData = Profile.map(p => {
                 if (!isAdmin && p.AccountUpdate != currentUser.UserID) return null;
                 const folderObj = Folder.find(f => f.FolderID == p.FolderID);
@@ -85,6 +113,7 @@
                     ObjectName: findName(ObjectList, 'ObjectID', p.ObjectID, 'ObjectName'),
                     DocTypeName: findName(DocType, 'DocTypeID', p.DocTypeID, 'DocTypeName'),
                     UserName: findName(User, 'UserID', p.AccountUpdate, 'Name'),
+                    AccountEmail: findName(User, 'UserID', p.AccountUpdate, 'Account'),
                     isUploaded: p.FileID && p.FileID !== "",
                     Deadline: folderObj && folderObj.Deadline ? folderObj.Deadline : null
                 };
@@ -92,7 +121,6 @@
 
             updateStats(enrichedData);
 
-            // 2. Gom nhóm theo Năm học
             const yearGroups = groupBy(enrichedData, 'SchoolYearName');
             
             if (Object.keys(yearGroups).length === 0) {
@@ -104,110 +132,245 @@
                 const lv1 = createAccordion(year, 'Năm học', 1);
                 const lv1Content = lv1.querySelector('.level-content');
 
-                // 3. Gom nhóm theo Kỳ kiểm tra
                 const folderGroups = groupBy(yearItems, 'FolderName');
 
                 for (const [folder, folderItems] of Object.entries(folderGroups)) {
                     const lv2 = createAccordion(folder, 'Kỳ', 2);
+                    const lv2Header = lv2.querySelector('.level-header');
                     const lv2Content = lv2.querySelector('.level-content');
                     
-                    // Render Bảng trực tiếp
+                    if (isAdmin) {
+                        const actionDiv = document.createElement('div');
+                        actionDiv.className = 'header-actions';
+                        
+                        const btnAssignRep = document.createElement('button');
+                        btnAssignRep.className = 'btn-header-report blue';
+                        btnAssignRep.innerHTML = '📥 Tổng hợp phân công';
+                        btnAssignRep.onclick = (e) => { 
+                            e.stopPropagation(); 
+                            exportWord(folderItems, folder, 'ASSIGN'); 
+                        };
+
+                        const btnResultRep = document.createElement('button');
+                        btnResultRep.className = 'btn-header-report green';
+                        btnResultRep.innerHTML = '📊 Tổng hợp kết quả';
+                        btnResultRep.onclick = (e) => { 
+                            e.stopPropagation(); 
+                            exportWord(folderItems, folder, 'RESULT'); 
+                        };
+
+                        actionDiv.appendChild(btnAssignRep);
+                        actionDiv.appendChild(btnResultRep);
+                        
+                        const arrow = lv2Header.querySelector('small');
+                        if (arrow) lv2Header.insertBefore(actionDiv, arrow);
+                        else lv2Header.appendChild(actionDiv);
+                    }
+
                     const tableHtml = renderTable(folderItems, isAdmin);
                     lv2Content.appendChild(tableHtml);
-                    
                     lv1Content.appendChild(lv2);
                 }
                 container.appendChild(lv1);
             }
         }
 
+        // --- HÀM XUẤT FILE WORD (ĐÃ FIX LỖI "HIỆN CODE" BẰNG CÁCH TÁCH CHUỖI) ---
+        async function exportWord(items, folderName, type) {
+            const isAgree = await sysConfirm(
+                "Xác nhận tải báo cáo",
+                "Bạn muốn tải file báo cáo <b>" + (type === 'ASSIGN' ? 'Phân công' : 'Kết quả nộp') + "</b><br>cho kỳ: " + folderName + "?",
+                "info"
+            );
+            if (!isAgree) return;
+
+            // 1. Sắp xếp
+            items.sort((a, b) => {
+                const subDiff = a.SubjectName.localeCompare(b.SubjectName);
+                if (subDiff !== 0) return subDiff;
+                const blkDiff = a.BlockName.localeCompare(b.BlockName);
+                if (blkDiff !== 0) return blkDiff;
+                const objDiff = a.ObjectName.localeCompare(b.ObjectName);
+                if (objDiff !== 0) return objDiff;
+                return a.DocTypeID - b.DocTypeID;
+            });
+
+            // 2. Tạo Header Word chuẩn A4 (Dùng chuỗi an toàn)
+            // LƯU Ý: Tách các dấu < và > để tránh lỗi trình duyệt
+            var part1 = '<' + 'html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">';
+            var part2 = '<' + 'head><' + 'meta charset="utf-8"><' + 'title>Export<' + '/title>';
+            var css = '<' + 'style>';
+            css += '@page Section1 { size: 21.0cm 29.7cm; margin: 2.0cm 2.0cm 2.0cm 2.0cm; mso-header-margin: 35.4pt; mso-footer-margin: 35.4pt; mso-paper-source: 0; }';
+            css += 'div.Section1 { page: Section1; }';
+            css += 'body { font-family: "Times New Roman", serif; font-size: 13pt; line-height: 1.3; }';
+            // CSS Phân công
+            css += '.title-main { text-align: center; color: #002060; font-weight: bold; font-size: 14pt; text-transform: uppercase; margin-bottom: 5px; }';
+            css += '.title-sub { text-align: center; color: #002060; font-weight: bold; font-size: 14pt; text-transform: uppercase; margin-bottom: 20px; }';
+            css += '.lv1 { font-weight: bold; color: #002060; font-size: 14pt; margin-top: 15px; margin-bottom: 5px; }';
+            css += '.lv2 { font-weight: bold; color: #002060; font-size: 13pt; margin-left: 1.0cm; margin-bottom: 5px; }';
+            css += '.lv3 { font-size: 13pt; margin-left: 2.0cm; margin-bottom: 5px; }';
+            css += '.lv4 { font-size: 13pt; margin-left: 3.0cm; margin-bottom: 5px; }';
+            css += '.footer-right { text-align: right; margin-right: 1.0cm; margin-top: 30px; }';
+            // CSS Bảng
+            css += 'table { border-collapse: collapse; width: 100%; font-size: 11pt; }';
+            css += 'td, th { border: 1px solid black; padding: 5px; }';
+            css += '<' + '/style>';
+            
+            var part3 = '<' + '/head><' + 'body><' + 'div class="Section1">';
+
+            var mhtmlBody = "";
+            const today = new Date();
+            const dateStr = "Ninh Kiều, ngày " + today.getDate() + " tháng " + (today.getMonth() + 1) + " năm " + today.getFullYear();
+
+            if (type === 'ASSIGN') {
+                // --- NỘI DUNG BÁO CÁO PHÂN CÔNG ---
+                mhtmlBody += "<p class='title-main'>BÁO CÁO TỔNG HỢP PHÂN CÔNG</p>";
+                mhtmlBody += "<p class='title-sub'>" + folderName.toUpperCase() + "</p>";
+                mhtmlBody += "<p style='text-align:center; color:#002060; font-weight:bold;'>---</p>";
+
+                let hierarchy = {};
+                items.forEach(function(item) {
+                    const sub = item.SubjectName;
+                    const blk = item.BlockName;
+                    const obj = item.ObjectName;
+                    const teacher = item.UserName;
+                    const doc = item.DocTypeName;
+
+                    if (!hierarchy[sub]) hierarchy[sub] = {};
+                    if (!hierarchy[sub][blk]) hierarchy[sub][blk] = {};
+                    if (!hierarchy[sub][blk][obj]) hierarchy[sub][blk][obj] = {};
+                    if (!hierarchy[sub][blk][obj][teacher]) hierarchy[sub][blk][obj][teacher] = new Set();
+                    hierarchy[sub][blk][obj][teacher].add(doc);
+                });
+
+                let subIndex = 1;
+                for (const subName in hierarchy) {
+                    mhtmlBody += "<p class='lv1'>" + subIndex + "/. Môn: " + subName + "</p>";
+                    let charCode = 97; 
+                    for (const blkName in hierarchy[subName]) {
+                        const charLabel = String.fromCharCode(charCode);
+                        mhtmlBody += "<p class='lv2'>" + charLabel + "/. " + blkName + "</p>";
+                        for (const objName in hierarchy[subName][blkName]) {
+                            mhtmlBody += "<p class='lv3'>* " + objName + ":</p>";
+                            for (const teacherName in hierarchy[subName][blkName][objName]) {
+                                const docs = hierarchy[subName][blkName][objName][teacherName];
+                                const docString = Array.from(docs).join(', ');
+                                mhtmlBody += "<p class='lv4'>- " + teacherName + " &nbsp;&nbsp;&nbsp; <i>(" + docString + ")</i></p>";
+                            }
+                        }
+                        charCode++;
+                    }
+                    subIndex++;
+                }
+
+                mhtmlBody += "<div class='footer-right'>";
+                mhtmlBody += "<p style='font-style:italic; margin-bottom:5px;'>" + dateStr + "</p>";
+                mhtmlBody += "<p style='font-weight:bold; text-transform:uppercase;'>LẬP BÁO CÁO</p>";
+                mhtmlBody += "</div>";
+
+            } else {
+                // --- NỘI DUNG BÁO CÁO KẾT QUẢ ---
+                mhtmlBody += "<h2 style='text-align:center; font-family:Times New Roman; color:#00b09b; text-transform:uppercase;'>TỔNG HỢP KẾT QUẢ NỘP HỒ SƠ</h2>";
+                mhtmlBody += "<p style='text-align:center; margin-bottom:20px;'><strong>Kỳ kiểm tra:</strong> " + folderName + "</p>";
+                mhtmlBody += "<table><thead><tr style='background-color:#f2f2f2; font-weight:bold;'>";
+                mhtmlBody += "<th style='width:40px;'>STT</th><th>Môn học</th><th>Khối</th><th>Đối tượng</th><th>Nội dung hồ sơ</th><th>Giáo viên</th><th>Trạng thái</th><th>Thời gian</th><th>Link File</th>";
+                mhtmlBody += "</tr></thead><tbody>";
+
+                items.forEach(function(item, index) {
+                    const statusText = item.isUploaded ? "Đã nộp" : "Chưa nộp";
+                    const statusColor = item.isUploaded ? "#008000" : "#ff0000";
+                    const time = item.isUploaded ? formatDateTimeFull(item.TimeUpdate) : "";
+                    const link = item.isUploaded ? "https://drive.google.com/uc?export=download&id=" + item.FileID : "";
+                    const linkHtml = link ? "<a href='" + link + "' target='_blank'>Xem</a>" : "";
+
+                    mhtmlBody += "<tr>";
+                    mhtmlBody += "<td style='text-align:center;'>" + (index + 1) + "</td>";
+                    mhtmlBody += "<td>" + item.SubjectName + "</td>";
+                    mhtmlBody += "<td style='text-align:center;'>" + item.BlockName + "</td>";
+                    mhtmlBody += "<td>" + item.ObjectName + "</td>";
+                    mhtmlBody += "<td>" + item.DocTypeName + "</td>";
+                    mhtmlBody += "<td>" + item.UserName + "<br><i style='font-size:9pt; color:#666;'>(" + (item.AccountEmail || "") + ")</i></td>";
+                    mhtmlBody += "<td style='color:" + statusColor + "; font-weight:bold; text-align:center;'>" + statusText + "</td>";
+                    mhtmlBody += "<td style='text-align:center;'>" + time + "</td>";
+                    mhtmlBody += "<td style='text-align:center;'>" + linkHtml + "</td>";
+                    mhtmlBody += "</tr>";
+                });
+
+                mhtmlBody += "</tbody></table>";
+                mhtmlBody += "<br><p style='text-align:right; font-family:Times New Roman; font-style:italic;'>" + dateStr + "</p>";
+            }
+
+            // Đóng thẻ an toàn
+            var partEnd = "<" + "/div><" + "/body><" + "/html>";
+            
+            var finalContent = part1 + part2 + css + part3 + mhtmlBody + partEnd;
+
+            const blob = new Blob(['\uFEFF', finalContent], { type: 'application/msword' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const timeStamp = new Date().toISOString().slice(0,10);
+            a.download = "BaoCao_" + type + "_" + folderName + "_" + timeStamp + ".doc";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // --- RENDER TABLE ---
         function renderTable(items, isAdmin) {
             const wrapper = document.createElement('div');
             wrapper.className = 'table-responsive';
 
-            // 1. SẮP XẾP CHUẨN: Môn -> Khối -> Đối tượng -> Loại
             items.sort((a, b) => {
                 const subDiff = a.SubjectName.localeCompare(b.SubjectName);
                 if (subDiff !== 0) return subDiff;
-
                 const blkDiff = a.BlockName.localeCompare(b.BlockName);
                 if (blkDiff !== 0) return blkDiff;
-
                 const objDiff = a.ObjectName.localeCompare(b.ObjectName);
                 if (objDiff !== 0) return objDiff;
-
                 return a.DocTypeID - b.DocTypeID;
             });
 
-            // Header
             let tableHeader = `
                 <thead>
                     <tr>
                         <th style="width: 40px;">#</th>
-                        <th>Môn học</th>
+                        <th>Môn</th>
                         <th>Khối</th>
                         <th>Đối tượng</th>
-                        <th>Nội dung hồ sơ</th>
+                        <th>File</th>
                         ${isAdmin ? '<th>Giáo viên</th>' : ''}
                         <th>Trạng thái</th>
-                        <th style="width: 100px; text-align:right;">Thao tác</th>
+                        <th style="width: 150px; text-align:right;">Thao tác</th>
                     </tr>
                 </thead>
             `;
 
             let tableBody = '<tbody>';
-
-            // Biến tạm để kiểm tra trùng lặp
-            let prevSubject = null;
-            let prevBlock = null;
-            let prevObject = null;
+            let prevSubject = null, prevBlock = null, prevObject = null;
 
             items.forEach((item, index) => {
-                // Logic Check Ẩn/Hiện dòng trùng
-                let showSubject = false;
-                let showBlock = false;
-                let showObject = false;
+                let showSubject = false, showBlock = false, showObject = false;
+                if (item.SubjectName !== prevSubject) { showSubject = true; showBlock = true; showObject = true; }
+                else if (item.BlockName !== prevBlock) { showBlock = true; showObject = true; }
+                else if (item.ObjectName !== prevObject) { showObject = true; }
 
-                if (item.SubjectName !== prevSubject) {
-                    showSubject = true; showBlock = true; showObject = true;
-                } else if (item.BlockName !== prevBlock) {
-                    showBlock = true; showObject = true;
-                } else if (item.ObjectName !== prevObject) {
-                    showObject = true;
-                }
+                prevSubject = item.SubjectName; prevBlock = item.BlockName; prevObject = item.ObjectName;
 
-                prevSubject = item.SubjectName;
-                prevBlock = item.BlockName;
-                prevObject = item.ObjectName;
+                const subCell = showSubject ? `<span class="table-badge badge-subject">${item.SubjectName}</span>` : '';
+                const blkCell = showBlock ? `<span class="table-badge badge-block">${item.BlockName}</span>` : '';
+                const objCell = showObject ? `<span class="table-badge badge-object">${item.ObjectName}</span>` : '';
 
-                // Class ẩn cell
-                const subCellClass = showSubject ? '' : 'cell-hidden';
-                const subCellContent = showSubject ? `<span class="table-badge badge-subject">${item.SubjectName}</span>` : '';
-
-                const blkCellClass = showBlock ? '' : 'cell-hidden';
-                const blkCellContent = showBlock ? `<span class="table-badge badge-block">${item.BlockName}</span>` : '';
-
-                const objCellClass = showObject ? '' : 'cell-hidden';
-                const objCellContent = showObject ? `<span class="table-badge badge-object">${item.ObjectName}</span>` : '';
-
-                // Deadline & Status
                 let isExpired = false;
                 if (item.Deadline) {
-                    const deadlineDate = new Date(item.Deadline);
-                    deadlineDate.setHours(23, 59, 59);
-                    if (new Date() > deadlineDate) isExpired = true;
+                    const dl = new Date(item.Deadline); dl.setHours(23,59,59);
+                    if (new Date() > dl) isExpired = true;
                 }
                 const isUploaded = item.isUploaded;
+                let statusHtml = isUploaded ? `<span style="color:#00b09b;">✔ ${formatDateTimeFull(item.TimeUpdate)}</span>` : `<span style="color:#e74c3c;">⏳ Chưa nộp</span>`;
 
-                let statusHtml = isUploaded 
-                    ? `<span style="color:#00b09b;">✔ ${formatDateTimeFull(item.TimeUpdate)}</span>`
-                    : `<span style="color:#e74c3c;">⏳ Chưa nộp</span>`;
-
-                // Buttons Icon
                 let actionBtns = '';
-                const downloadBtn = isUploaded 
-                    ? `<button class="btn-icon download" title="Tải về" onclick="downloadFile('${item.FileID}', '${item.ProfileID}')">📥</button>` 
-                    : '';
+                const downloadBtn = isUploaded ? `<button class="btn-icon download" title="Tải về" onclick="downloadFile('${item.FileID}', '${item.ProfileID}')">📥</button>` : '';
 
                 if (isAdmin) {
                     actionBtns += downloadBtn;
@@ -215,47 +378,30 @@
                     actionBtns += `<button class="btn-icon delete-row" title="Xóa dòng" onclick="adminDeleteRow('${item.ProfileID}')">✕</button>`;
                 } else {
                     if (isExpired) {
-                        actionBtns = isUploaded 
-                            ? `${downloadBtn} <span class="status-expired">🔒</span>` 
-                            : `<span class="status-expired">Hết hạn</span>`;
+                        actionBtns = isUploaded ? `${downloadBtn} <span class="status-expired">🔒</span>` : `<span class="status-expired">Hết hạn</span>`;
                     } else {
-                        if (isUploaded) {
-                            actionBtns = `${downloadBtn} <button class="btn-icon edit" title="Thay thế" onclick="triggerDirectUpload('${item.ProfileID}')">✎</button>`;
-                        } else {
-                            actionBtns = `<button class="btn-icon upload" title="Nộp file" onclick="triggerDirectUpload('${item.ProfileID}')">📤</button>`;
-                        }
+                        if (isUploaded) actionBtns = `${downloadBtn} <button class="btn-icon edit" title="Thay thế" onclick="triggerDirectUpload('${item.ProfileID}')">✎</button>`;
+                        else actionBtns = `<button class="btn-icon upload" title="Nộp file" onclick="triggerDirectUpload('${item.ProfileID}')">📤</button>`;
                     }
                 }
 
-                // Render Dòng
                 tableBody += `
                     <tr>
                         <td style="text-align:center; color:#ccc;">${index + 1}</td>
-                        <td class="${subCellClass}">${subCellContent}</td>
-                        <td class="${blkCellClass}">${blkCellContent}</td>
-                        <td class="${objCellClass}">${objCellContent}</td>
-                        
-                        <td>
-                            <span>${item.DocTypeName}</span>
-                            ${item.Note ? `<br><small class="text-muted">📝 ${item.Note}</small>` : ''}
-                        </td>
-                        
+                        <td class="${showSubject?'':'cell-hidden'}">${subCell}</td>
+                        <td class="${showBlock?'':'cell-hidden'}">${blkCell}</td>
+                        <td class="${showObject?'':'cell-hidden'}">${objCell}</td>
+                        <td><span>${item.DocTypeName}</span>${item.Note ? `<br><small class="text-muted">📝 ${item.Note}</small>` : ''}</td>
                         ${isAdmin ? `<td>👤 ${item.UserName}</td>` : ''}
-                        
-                        <td style="font-size:0.85rem;">
-                            ${statusHtml}
-                            ${item.Deadline ? `<div class="text-muted" style="font-size:0.75rem;">Hạn: ${formatDate(item.Deadline)}</div>` : ''}
-                        </td>
+                        <td style="font-size:0.85rem;">${statusHtml}${item.Deadline ? `<div class="text-muted" style="font-size:0.75rem;">Hạn: ${formatDate(item.Deadline)}</div>` : ''}</td>
                         <td><div class="cell-actions">${actionBtns}</div></td>
                     </tr>
                 `;
             });
 
-            tableBody += '</tbody>';
             const table = document.createElement('table');
             table.className = 'data-table';
-            table.innerHTML = tableHeader + tableBody;
-
+            table.innerHTML = tableHeader + tableBody + '</tbody>';
             wrapper.appendChild(table);
             return wrapper;
         }
