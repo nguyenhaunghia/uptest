@@ -1,16 +1,16 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbxW0fZJJD4vZWKjhnUqYaWP0hMe5gWh9BW3435T0ytgf8He6QI6qyp4TBvwqf6cxVJe/exec'; 
+const API_URL = 'https://script.google.com/macros/s/AKfycbxgAwE3HuT4J4zDe6AqGcyL85t8EQZshYtOp5h8Amxc36XhD3wSyDbnaMF2dZWlN0As/exec'; 
 
 let appState = {
     allData: {}
 };
 
 const ICONS = {
-    'Năm học': '🗓️',  // Calendar
-    'Kỳ': '📂',      // Folder
-    'Môn': '📘',      // Book
-    'Khối': '🏗️',     // Building/Block
-    'Đối tượng': '👥',// Group
-    'Giáo viên': '👤' // Person
+    'Năm học': '🗓️',
+    'Kỳ': '📂',
+    'Môn': '📘',
+    'Khối': '🏗️',
+    'Đối tượng': '👥',
+    'Giáo viên': '👤'
 };
 
 // ============================================================
@@ -44,17 +44,11 @@ function showToast(message, type = 'info') {
 
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
     let icon = '🔔';
     if (type === 'success') icon = '✅';
     if (type === 'error') icon = '❌';
 
-    toast.innerHTML = `
-        <i>${icon}</i>
-        <span class="toast-message">${message}</span>
-        <span class="toast-close" onclick="this.parentElement.remove()">✕</span>
-    `;
-
+    toast.innerHTML = `<i>${icon}</i><span class="toast-message">${message}</span><span class="toast-close" onclick="this.parentElement.remove()">✕</span>`;
     container.appendChild(toast);
     setTimeout(() => {
         toast.style.animation = 'fadeOut 0.5s forwards';
@@ -62,12 +56,51 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
+// --- SYSTEM MODAL (CHỈ DÙNG ĐỂ XÁC NHẬN) ---
+function initSystemModal() {
+    if (document.getElementById('sys-modal')) return;
+    const modalHtml = `
+    <div id="sys-modal" class="modal" style="z-index: 99999;">
+        <div class="sys-modal-box">
+            <div id="sys-icon" class="sys-modal-icon-box sys-type-warning">❓</div>
+            <h3 id="sys-title" class="sys-modal-title">Xác nhận</h3>
+            <p id="sys-msg" class="sys-modal-msg">...</p>
+            <div class="sys-modal-actions">
+                <button id="sys-btn-cancel" class="btn btn-secondary">Hủy bỏ</button>
+                <button id="sys-btn-ok" class="btn btn-primary">Đồng ý</button>
+            </div>
+        </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+initSystemModal();
+
+function sysConfirm(title, msg) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('sys-modal');
+        const titleEl = document.getElementById('sys-title');
+        const msgEl = document.getElementById('sys-msg');
+        const btnOk = document.getElementById('sys-btn-ok');
+        const btnCancel = document.getElementById('sys-btn-cancel');
+
+        titleEl.innerText = title;
+        msgEl.innerHTML = msg;
+        
+        modal.classList.add('show');
+
+        btnOk.onclick = () => { modal.classList.remove('show'); resolve(true); };
+        btnCancel.onclick = () => { modal.classList.remove('show'); resolve(false); };
+    });
+}
+
+// ============================================================
+// 2. HELPER & AUTH
+// ============================================================
+
 function createAccordion(title, label, level) {
     const div = document.createElement('div');
     div.className = `level-group level-${level}`;
-    
     const icon = ICONS[label] || label; 
-    
     div.innerHTML = `
         <div class="level-header" onclick="this.classList.toggle('active'); this.nextElementSibling.classList.toggle('show')">
             <span style="display:flex; align-items:center; gap:10px;">
@@ -81,33 +114,22 @@ function createAccordion(title, label, level) {
     return div;
 }
 
-// ============================================================
-// 2. AUTH & DATA FETCHING
-// ============================================================
-
 function checkAuth() {
     const userStr = localStorage.getItem('upfile_user');
     if (!userStr) {
-        if (!window.location.pathname.includes('login.html')) {
-            window.location.href = 'login.html';
-        }
+        if (!window.location.pathname.includes('login.html')) window.location.href = 'login.html';
         return;
     }
-
     const user = JSON.parse(userStr);
-    
     const nameEl = document.getElementById('displayUserName');
     if(nameEl) nameEl.innerText = user.Name;
-    
     const roleEl = document.getElementById('displayUserRole');
     if (roleEl) {
         roleEl.innerText = user.Permissions;
         roleEl.className = user.Permissions === 'Admin' ? 'user-role-badge admin' : 'user-role-badge';
     }
-
     const avatarEl = document.getElementById('userAvatar');
     if(avatarEl) avatarEl.innerText = user.Name ? user.Name.charAt(0).toUpperCase() : 'U';
-
     const btnAssign = document.getElementById('btnAssign');
     if (btnAssign) {
         btnAssign.style.display = user.Permissions === 'Admin' ? 'inline-block' : 'none';
@@ -131,20 +153,15 @@ async function fetchData() {
 }
 
 // ============================================================
-// 3. XỬ LÝ ACTIONS (Upload, Download, Delete)
+// 3. ACTIONS (Index 1 & 2)
 // ============================================================
 
 function triggerDirectUpload(profileID) {
     const hiddenInput = document.getElementById('currentProfileID');
     if(hiddenInput) hiddenInput.value = profileID;
-    
     const fileInput = document.getElementById('globalFileInput');
-    if(fileInput) {
-        fileInput.value = ''; 
-        fileInput.click();
-    } else {
-        alert('Lỗi: Không tìm thấy input file hệ thống!');
-    }
+    if(fileInput) { fileInput.value = ''; fileInput.click(); } 
+    else { showToast('Lỗi: Không tìm thấy input file hệ thống!', 'error'); }
 }
 
 async function handleFileSelected(input) {
@@ -154,116 +171,72 @@ async function handleFileSelected(input) {
         const user = JSON.parse(localStorage.getItem('upfile_user'));
 
         showLoading(`Đang nộp: ${file.name}...`);
-
         try {
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async function() {
                 const base64 = reader.result.split(',')[1]; 
-                
                 const payload = {
-                    action: 'uploadFile',
-                    ProfileID: profileID,
-                    fileName: file.name,
-                    mimeType: file.type,
-                    data: base64,
-                    ActorID: user.UserID 
+                    action: 'uploadFile', ProfileID: profileID,
+                    fileName: file.name, mimeType: file.type,
+                    data: base64, ActorID: user.UserID
                 };
-
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
+                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
                 const result = await response.json();
-
                 hideLoading();
-
                 if (result.status === 'success') {
-                    showToast('Đã nộp xong!', 'success');
-                    loadDashboardData(); 
-                } else {
-                    showToast('Lỗi: ' + result.message, 'error');
-                }
+                    showToast('Đã nộp xong!', 'success'); loadDashboardData(); 
+                } else { showToast('Lỗi: ' + result.message, 'error'); }
             };
-        } catch (e) {
-            hideLoading();
-            showToast('Lỗi đọc file.', 'error');
-        }
+        } catch (e) { hideLoading(); showToast('Lỗi đọc file.', 'error'); }
     }
 }
 
 async function downloadFile(fileId, profileID) {
     if (!fileId) return;
-    
     const user = JSON.parse(localStorage.getItem('upfile_user'));
     fetch(API_URL, {
         method: 'POST',
-        body: JSON.stringify({
-            action: 'logClientAction',
-            userID: user.UserID,
-            act: 'DOWNLOAD',
-            note: `Tải file ID: ${fileId} | ProfileID: ${profileID}`
-        })
+        body: JSON.stringify({ action: 'logClientAction', userID: user.UserID, act: 'DOWNLOAD', note: `Tải file ID: ${fileId} | ProfileID: ${profileID}` })
     });
-
     const url = `https://drive.google.com/uc?export=download&id=${fileId}`;
     window.open(url, '_blank');
 }
 
 async function adminDeleteRow(profileID) {
+    // MODAL XÁC NHẬN
+    const isAgree = await sysConfirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa dòng dữ liệu này?<br>File đính kèm cũng sẽ bị xóa.');
+    if (!isAgree) return;
+
     showLoading("Đang xóa dòng...");
     const user = JSON.parse(localStorage.getItem('upfile_user'));
-    
     try {
         const response = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ 
-                action: 'adminDeleteRow', 
-                ProfileID: profileID,
-                ActorID: user.UserID
-            })
+            method: 'POST', body: JSON.stringify({ action: 'adminDeleteRow', ProfileID: profileID, ActorID: user.UserID })
         });
         const res = await response.json();
         hideLoading();
-        
-        if(res.status === 'success') {
-            showToast("Đã xóa dòng!", "success");
-            loadDashboardData();
-        } else {
-            showToast("Lỗi: " + res.message, "error");
-        }
-    } catch(e) { 
-        hideLoading(); 
-        showToast("Lỗi kết nối", "error"); 
-    }
+        if(res.status === 'success') { showToast("Đã xóa dòng!", "success"); loadDashboardData(); } 
+        else { showToast("Lỗi: " + res.message, "error"); }
+    } catch(e) { hideLoading(); showToast("Lỗi kết nối", "error"); }
 }
 
 async function adminDeleteFile(profileID) {
+    // MODAL XÁC NHẬN
+    const isAgree = await sysConfirm('Xác nhận xóa file', 'Bạn có chắc chắn muốn xóa file đính kèm này?');
+    if (!isAgree) return;
+
     showLoading("Đang xóa file...");
     const user = JSON.parse(localStorage.getItem('upfile_user'));
-    
     try {
         const response = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ 
-                action: 'adminDeleteFile', 
-                ProfileID: profileID, 
-                ActorID: user.UserID
-            })
+            method: 'POST', body: JSON.stringify({ action: 'adminDeleteFile', ProfileID: profileID, ActorID: user.UserID })
         });
         const res = await response.json();
         hideLoading();
-        
-        if(res.status === 'success') {
-            showToast("Đã xóa file!", "success");
-            loadDashboardData();
-        } else {
-            showToast("Lỗi: " + res.message, "error");
-        }
-    } catch(e) { 
-        hideLoading(); 
-        showToast("Lỗi kết nối", "error"); 
-    }
+        if(res.status === 'success') { showToast("Đã xóa file!", "success"); loadDashboardData(); } 
+        else { showToast("Lỗi: " + res.message, "error"); }
+    } catch(e) { hideLoading(); showToast("Lỗi kết nối", "error"); }
 }
 
 // ============================================================
@@ -273,17 +246,10 @@ async function adminDeleteFile(profileID) {
 async function loadDashboardData() {
     const container = document.getElementById('dashboardContent');
     if (!container) return; 
-
     showLoading('Đang tải dữ liệu hồ sơ...');
-
     const rawData = await fetchData();
     hideLoading();
-
-    if (!rawData) {
-        container.innerHTML = '<div style="text-align:center; color:red;">Lỗi kết nối server!</div>';
-        return;
-    }
-    
+    if (!rawData) { container.innerHTML = '<div style="text-align:center; color:red;">Lỗi kết nối server!</div>'; return; }
     appState.allData = rawData;
     renderDashboard(rawData);
 }
@@ -293,15 +259,11 @@ function renderDashboard(data) {
     const currentUser = JSON.parse(localStorage.getItem('upfile_user'));
     const isAdmin = currentUser.Permissions === 'Admin';
     const container = document.getElementById('dashboardContent');
-    
     container.innerHTML = ''; 
 
-    // Join Dữ liệu
     let enrichedData = Profile.map(p => {
         if (!isAdmin && p.AccountUpdate != currentUser.UserID) return null;
-
         const folderObj = Folder.find(f => f.FolderID == p.FolderID);
-
         return {
             ...p,
             SchoolYearName: findName(SchoolYear, 'SchoolYearID', p.SchoolYearID, 'SchoolYearName'),
@@ -317,34 +279,23 @@ function renderDashboard(data) {
     }).filter(item => item !== null);
 
     updateStats(enrichedData);
-
-    // Gom nhóm
     const groups = groupBy(enrichedData, 'SchoolYearName');
-    if (Object.keys(groups).length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding:50px;">Không có dữ liệu hiển thị.</div>';
-        return;
-    }
+    if (Object.keys(groups).length === 0) { container.innerHTML = '<div style="text-align:center; padding:50px;">Không có dữ liệu hiển thị.</div>'; return; }
 
-    // Render Accordion Nested
     for (const [year, yearItems] of Object.entries(groups)) {
         const lv1 = createAccordion(year, 'Năm học', 1);
         const folderGroups = groupBy(yearItems, 'FolderName');
-        
         for (const [folder, folderItems] of Object.entries(folderGroups)) {
             const lv2 = createAccordion(folder, 'Kỳ', 2);
             const subjectGroups = groupBy(folderItems, 'SubjectName');
-            
             for (const [sub, subItems] of Object.entries(subjectGroups)) {
                 const lv3 = createAccordion(sub, 'Môn', 3);
                 const blockGroups = groupBy(subItems, 'BlockName');
-                
                 for (const [block, blockItems] of Object.entries(blockGroups)) {
                     const lv4 = createAccordion(block, 'Khối', 4);
                     const objectGroups = groupBy(blockItems, 'ObjectName');
-                    
                     for (const [obj, objItems] of Object.entries(objectGroups)) {
                         const lv5 = createAccordion(obj, 'Đối tượng', 5);
-                        
                         if (isAdmin) {
                             const userGroups = groupBy(objItems, 'UserName');
                             for (const [usr, usrItems] of Object.entries(userGroups)) {
@@ -355,7 +306,6 @@ function renderDashboard(data) {
                         } else {
                             lv5.querySelector('.level-content').appendChild(renderLevel7(objItems));
                         }
-                        
                         lv4.querySelector('.level-content').appendChild(lv5);
                     }
                     lv3.querySelector('.level-content').appendChild(lv4);
@@ -371,16 +321,13 @@ function renderDashboard(data) {
 function renderLevel7(items) {
     const div = document.createElement('div');
     div.className = 'level-7-list';
-    
     items.sort((a, b) => a.DocTypeID - b.DocTypeID);
-
     const currentUser = JSON.parse(localStorage.getItem('upfile_user'));
     const isAdmin = currentUser.Permissions === 'Admin';
 
     items.forEach(item => {
         const row = document.createElement('div');
         row.className = 'doc-item';
-        
         let isExpired = false;
         if (item.Deadline) {
             const deadlineDate = new Date(item.Deadline);
@@ -388,10 +335,8 @@ function renderLevel7(items) {
             deadlineDate.setHours(23, 59, 59);
             if (today > deadlineDate) isExpired = true;
         }
-
         const isUploaded = item.isUploaded;
-        let infoHtml = ''; 
-        let actionBtn = ''; 
+        let infoHtml = ''; let actionBtn = ''; 
 
         if (isUploaded) {
             const timeStr = formatDateTimeFull(item.TimeUpdate); 
@@ -400,46 +345,32 @@ function renderLevel7(items) {
             infoHtml = `<span class="status-text-small" style="color:#e74c3c">⏳ Chưa nộp</span>`;
         }
         
-        const downloadBtn = isUploaded 
-            ? `<button class="btn-icon download" title="Tải về máy" onclick="downloadFile('${item.FileID}', '${item.ProfileID}')">📥</button>` 
-            : '';
+        const downloadBtn = isUploaded ? `<button class="btn-icon download" title="Tải về máy" onclick="downloadFile('${item.FileID}', '${item.ProfileID}')">📥</button>` : '';
 
         if (isAdmin) {
             actionBtn += downloadBtn;
-            if (isUploaded) {
-                actionBtn += `<button class="btn-icon delete-file" title="Xóa file" onclick="adminDeleteFile('${item.ProfileID}')">🗑</button>`;
-            }
+            if (isUploaded) actionBtn += `<button class="btn-icon delete-file" title="Xóa file" onclick="adminDeleteFile('${item.ProfileID}')">🗑</button>`;
             actionBtn += `<button class="btn-icon delete-row" title="Xóa dòng" onclick="adminDeleteRow('${item.ProfileID}')">✕</button>`;
         } 
         else {
             if (isExpired) {
-                if (isUploaded) {
-                    actionBtn = `${downloadBtn} <span class="status-expired">⛔ Đã khóa</span>`;
-                } else {
-                    actionBtn = `<span class="status-expired">⛔ Quá hạn</span>`;
-                }
+                if (isUploaded) actionBtn = `${downloadBtn} <span class="status-expired">⛔ Đã khóa</span>`;
+                else actionBtn = `<span class="status-expired">⛔ Quá hạn</span>`;
             } else {
-                if (isUploaded) {
-                    actionBtn = `${downloadBtn} <button class="btn-icon edit" title="Thay thế file khác" onclick="triggerDirectUpload('${item.ProfileID}')">✎</button>`;
-                } else {
-                    actionBtn = `<button class="btn-icon upload" title="Nộp file ngay" onclick="triggerDirectUpload('${item.ProfileID}')">📤</button>`;
-                }
+                if (isUploaded) actionBtn = `${downloadBtn} <button class="btn-icon edit" title="Thay thế file khác" onclick="triggerDirectUpload('${item.ProfileID}')">✎</button>`;
+                else actionBtn = `<button class="btn-icon upload" title="Nộp file ngay" onclick="triggerDirectUpload('${item.ProfileID}')">📤</button>`;
             }
         }
 
         row.innerHTML = `
             <div style="flex: 1;">
-                <div class="doc-info-title">
-                    📄 ${item.DocTypeName} ${infoHtml}
-                </div>
+                <div class="doc-info-title">📄 ${item.DocTypeName} ${infoHtml}</div>
                 <div style="font-size: 0.8rem; margin-top: 4px; color: #666;">
                     ${item.Note ? `<span>📝 ${item.Note}</span> • ` : ''}
                     ${item.Deadline ? `<span>📅 Hạn: ${formatDate(item.Deadline)}</span>` : ''}
                 </div>
             </div>
-            <div style="display:flex; gap:8px; align-items:center;">
-                ${actionBtn}
-            </div>
+            <div style="display:flex; gap:8px; align-items:center;">${actionBtn}</div>
         `;
         div.appendChild(row);
     });
@@ -449,76 +380,38 @@ function renderLevel7(items) {
 // ============================================================
 // 5. HELPER FUNCTIONS
 // ============================================================
-
 function updateStats(data) {
     const total = data.length;
     const done = data.filter(i => i.isUploaded).length;
-    
     if(document.getElementById('statTotal')) document.getElementById('statTotal').innerText = total;
     if(document.getElementById('statDone')) document.getElementById('statDone').innerText = done;
     if(document.getElementById('statPending')) document.getElementById('statPending').innerText = total - done;
 }
-
-function groupBy(xs, key) {
-    return xs.reduce(function(rv, x) {
-        (rv[x[key]] = rv[x[key]] || []).push(x);
-        return rv;
-    }, {});
-}
-
-function findName(arr, idKey, idVal, nameKey) {
-    if(!arr) return '';
-    const f = arr.find(x => x[idKey] == idVal);
-    return f ? f[nameKey] : `(${idVal})`;
-}
-
-function formatDate(dateStr) {
-    if(!dateStr) return '';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('vi-VN');
-}
-
-function formatDateTimeFull(dateStr) {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = String(d.getFullYear()).slice(-2);
-    const hour = String(d.getHours()).padStart(2, '0');
-    const min = String(d.getMinutes()).padStart(2, '0');
-    const sec = String(d.getSeconds()).padStart(2, '0');
-    return `${day}/${month}/${year} ${hour}:${min}:${sec}`;
-}
+function groupBy(xs, key) { return xs.reduce(function(rv, x) { (rv[x[key]] = rv[x[key]] || []).push(x); return rv; }, {}); }
+function findName(arr, idKey, idVal, nameKey) { if(!arr) return ''; const f = arr.find(x => x[idKey] == idVal); return f ? f[nameKey] : `(${idVal})`; }
+function formatDate(dateStr) { if(!dateStr) return ''; const d = new Date(dateStr); return d.toLocaleDateString('vi-VN'); }
+function formatDateTimeFull(dateStr) { if (!dateStr) return ''; const d = new Date(dateStr); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`; }
 
 // ============================================================
 // 6. LOGIN LOGIC
 // ============================================================
-
 function handleLoginPage() {
     const loginForm = document.getElementById('loginForm');
     if (!loginForm) return;
-
     if (localStorage.getItem('upfile_user')) window.location.href = 'index.html';
 
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const u = document.getElementById('username').value.trim();
         const p = document.getElementById('password').value.trim();
-
         showLoading('Đang xác thực...');
-
         try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'login', username: u, password: p })
-            });
+            const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'login', username: u, password: p }) });
             const result = await response.json();
             hideLoading();
-
             if (result.status === 'success') {
                 const user = result.user;
                 showToast(`Xin chào ${user.Name}`, 'success');
-
                 if (user.Password === 'A12345678!') {
                     document.getElementById('changePassModal').classList.add('show');
                     localStorage.setItem('temp_user_id', user.UserID);
@@ -526,13 +419,8 @@ function handleLoginPage() {
                     localStorage.setItem('upfile_user', JSON.stringify(user));
                     setTimeout(() => window.location.href = 'index.html', 1000);
                 }
-            } else {
-                showToast(result.message || 'Đăng nhập thất bại', 'error');
-            }
-        } catch (err) {
-            hideLoading();
-            showToast('Lỗi kết nối server!', 'error');
-        }
+            } else { showToast(result.message || 'Đăng nhập thất bại', 'error'); }
+        } catch (err) { hideLoading(); showToast('Lỗi kết nối server!', 'error'); }
     });
 
     const changeForm = document.getElementById('changePassForm');
@@ -544,36 +432,196 @@ function handleLoginPage() {
     }
 }
 
-// --- THÊM HÀM GOOGLE LOGIN ---
 async function handleCredentialResponse(response) {
     console.log("Google Token:", response.credential);
     showLoading('Đang xác thực Google...');
-
     try {
-        const apiResponse = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ 
-                action: 'googleLogin', 
-                token: response.credential 
-            })
-        });
+        const apiResponse = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'googleLogin', token: response.credential }) });
         const result = await apiResponse.json();
-        
         hideLoading();
-
         if (result.status === 'success') {
             const user = result.user;
             showToast(`Xin chào ${user.Name}`, 'success');
-            
             localStorage.setItem('upfile_user', JSON.stringify(user));
             setTimeout(() => window.location.href = 'index.html', 1000);
-        } else {
-            showToast(result.message, 'error');
-        }
+        } else { showToast(result.message, 'error'); }
+    } catch (err) { hideLoading(); showToast('Lỗi kết nối server!', 'error'); }
+}
 
-    } catch (err) {
+// ============================================================
+// 7. LOGIC TRANG PHÂN CÔNG (ASSIGN.HTML)
+// ============================================================
+
+async function initAssignPage() {
+    checkAuth();
+    showLoading('Đang tải dữ liệu...');
+    
+    const data = await fetchData();
+    hideLoading();
+    if (!data) return;
+
+    fillSelect('selYear', data.SchoolYear, 'SchoolYearID', 'SchoolYearName');
+    fillSelect('selFolder', data.Folder, 'FolderID', 'FolderName');
+    fillSelect('selSubject', data.Subject, 'SubjectID', 'SubjectName');
+    fillSelect('selBlock', data.Block, 'BlockID', 'BlockName');
+    fillSelect('selObject', data.Object, 'ObjectID', 'ObjectName');
+
+    const teachers = data.User.filter(u => u.Permissions !== 'Admin');
+    const docTypes = data.DocType;
+
+    renderTeacherTable(teachers, docTypes);
+
+    document.querySelectorAll('.required-select').forEach(sel => {
+        sel.addEventListener('change', checkPart1Status);
+    });
+    document.getElementById('teacherBody').addEventListener('change', checkPart2Status);
+}
+
+function checkPart1Status() {
+    const year = document.getElementById('selYear').value;
+    const folder = document.getElementById('selFolder').value;
+    const subject = document.getElementById('selSubject').value;
+    const block = document.getElementById('selBlock').value;
+    const object = document.getElementById('selObject').value;
+    const part2 = document.getElementById('part2Container');
+    const btnSave = document.getElementById('btnSave');
+
+    if (year && folder && subject && block && object) {
+        part2.classList.remove('section-disabled');
+    } else {
+        part2.classList.add('section-disabled');
+        btnSave.disabled = true;
+    }
+}
+
+function checkPart2Status() {
+    const btnSave = document.getElementById('btnSave');
+    let hasSelection = false;
+    const rows = document.querySelectorAll('#teacherBody tr');
+
+    for (let row of rows) {
+        const teacherChk = row.querySelector('.chk-teacher-row');
+        if (teacherChk && teacherChk.checked) {
+            const docChecked = row.querySelector('.chk-doctype:checked');
+            if (docChecked) {
+                hasSelection = true; break;
+            }
+        }
+    }
+    btnSave.disabled = !hasSelection;
+}
+
+function fillSelect(elementId, dataArray, valueKey, textKey) {
+    const sel = document.getElementById(elementId);
+    if(!sel) return;
+    sel.innerHTML = '<option value="">-- Chọn --</option>';
+    if(dataArray) {
+        dataArray.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item[valueKey]; opt.innerText = item[textKey];
+            sel.appendChild(opt);
+        });
+    }
+}
+
+function renderTeacherTable(teachers, docTypes) {
+    const tbody = document.getElementById('teacherBody');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+
+    teachers.forEach(t => {
+        const tr = document.createElement('tr');
+        let docTypeHtml = `<div class="doctype-grid">`;
+        docTypes.forEach(dt => {
+            const uniqueID = `chk-${t.UserID}-${dt.DocTypeID}`;
+            docTypeHtml += `
+                <div class="doctype-chip">
+                    <input type="checkbox" id="${uniqueID}" class="chk-doctype" value="${dt.DocTypeID}" data-teacher="${t.UserID}">
+                    <label for="${uniqueID}">${dt.DocTypeName}</label>
+                </div>
+            `;
+        });
+        docTypeHtml += `</div>`;
+
+        tr.innerHTML = `
+            <td style="text-align:center;">
+                <input type="checkbox" class="chk-teacher-row" value="${t.UserID}">
+            </td>
+            <td>
+                <div style="font-weight:600; color:var(--primary);">${t.Name}</div>
+                <div class="text-muted" style="font-size:0.8rem;">${t.Account}</div>
+            </td>
+            <td>${docTypeHtml}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    document.querySelectorAll('.chk-teacher-row').forEach(chk => {
+        chk.addEventListener('change', function() {
+            const row = this.closest('tr');
+            const docChecks = row.querySelectorAll('.chk-doctype');
+            docChecks.forEach(d => d.checked = this.checked);
+            checkPart2Status();
+        });
+    });
+}
+
+// --- LƯU PHÂN CÔNG (ĐÃ CHUẨN UX: TOAST THÔNG BÁO, MODAL XÁC NHẬN) ---
+async function handleSaveAssign() {
+    const year = document.getElementById('selYear').value;
+    const folder = document.getElementById('selFolder').value;
+    const subject = document.getElementById('selSubject').value;
+    const block = document.getElementById('selBlock').value;
+    const object = document.getElementById('selObject').value;
+
+    let assignments = [];
+    const rows = document.querySelectorAll('#teacherBody tr');
+
+    rows.forEach(row => {
+        const teacherChk = row.querySelector('.chk-teacher-row');
+        if (teacherChk && teacherChk.checked) {
+            const teacherID = teacherChk.value;
+            const docTypeChks = row.querySelectorAll('.chk-doctype:checked');
+            docTypeChks.forEach(dt => {
+                assignments.push({
+                    SchoolYearID: year, FolderID: folder,
+                    SubjectID: subject, BlockID: block,
+                    ObjectID: object, TeacherID: teacherID,
+                    DocTypeID: dt.value
+                });
+            });
+        }
+    });
+
+    // Lỗi: Dùng Toast
+    if (assignments.length === 0) { 
+        showToast('Chưa chọn giáo viên hoặc nội dung nào!', 'error'); 
+        return; 
+    }
+
+    // Xác nhận: Dùng Modal
+    const isAgree = await sysConfirm(
+        "Xác nhận Lưu",
+        `Bạn sắp phân công <b>${assignments.length}</b> nhiệm vụ cho giáo viên.<br>Dữ liệu sẽ được ghi nhận vào hệ thống.`
+    );
+
+    if (!isAgree) return; // Nếu Hủy thì dừng
+
+    showLoading('Đang lưu phân công...');
+    try {
+        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'assignTasks', assignments: assignments }) });
+        const result = await response.json();
         hideLoading();
-        showToast('Lỗi kết nối server!', 'error');
-        console.error(err);
+        if (result.status === 'success') {
+            // Thành công: Dùng Toast
+            showToast(`Đã tạo thành công ${result.count} mục phân công!`, 'success');
+            document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
+            checkPart2Status();
+        } else { 
+            showToast('Lỗi: ' + result.message, 'error'); 
+        }
+    } catch (e) { 
+        hideLoading(); 
+        showToast('Lỗi kết nối server', 'error'); 
     }
 }
