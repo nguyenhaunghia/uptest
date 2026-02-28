@@ -36,6 +36,39 @@
         }
         .btn-header-report.blue { color: #4e54c8; border-color: #bbdefb; }
         .btn-header-report.green { color: #00b09b; border-color: #b2f5ea; }
+
+        /* CSS Cho Thống Kê Cấp Folder */
+        .folder-stats-inline {
+            display: flex;
+            gap: 6px;
+            margin-left: 15px;
+            align-items: center;
+        }
+        .fs-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .fs-total { background-color: #4e54c8; }   
+        .fs-done { background-color: #00b09b; }    
+        .fs-pending { background-color: #e74c3c; } 
+
+        /* CSS Cho Tiêu Đề Phân Vùng (Phần 1, Phần 2) */
+        .section-split-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e0e6ed;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
     </style>
 </head>
 <body>
@@ -46,20 +79,7 @@
             <a href="assign.html" id="btnAssign" class="btn btn-primary btn-sm" style="display:none; box-shadow:none;">Phân công</a>
         </div>
 
-        <div class="stats-group">
-            <div class="stat-pill" title="Tổng số mục cần nộp">
-                <span>Tổng:</span>
-                <span id="statTotal" class="stat-val bg-blue">0</span>
-            </div>
-            <div class="stat-pill" title="Đã hoàn thành">
-                <span>Đã nộp:</span>
-                <span id="statDone" class="stat-val bg-green">0</span>
-            </div>
-            <div class="stat-pill" title="Chưa hoàn thành">
-                <span>Chưa nộp:</span>
-                <span id="statPending" class="stat-val bg-red">0</span>
-            </div>
-        </div>
+        <div class="stats-group"></div>
 
         <div class="user-section">
             <div class="user-info-text">
@@ -100,12 +120,26 @@
             
             container.innerHTML = ''; 
 
-            let enrichedData = Profile.map(p => {
-                if (!isAdmin && p.AccountUpdate != currentUser.UserID) return null;
+            let adminData = [];
+            let myUploadData = [];
+            let myPreviewData = [];
+
+            // 1. Phân loại dữ liệu
+            Profile.forEach(p => {
+                // Xử lý chuỗi AccountPreview đề phòng có khoảng trắng (VD: "U01, U02")
+                let previewList = p.AccountPreview ? p.AccountPreview.toString().split(',').map(s => s.trim()) : [];
+                
+                let isUploader = p.AccountUpdate == currentUser.UserID;
+                let isPreviewer = previewList.includes(String(currentUser.UserID));
+                let roleContext = isAdmin ? 'admin' : (isUploader ? 'uploader' : (isPreviewer ? 'previewer' : 'none'));
+
+                if (roleContext === 'none') return; // Không có quyền thì bỏ qua
+
                 const folderObj = Folder.find(f => f.FolderID == p.FolderID);
 
-                return {
+                let item = {
                     ...p,
+                    RoleContext: roleContext, 
                     SchoolYearName: findName(SchoolYear, 'SchoolYearID', p.SchoolYearID, 'SchoolYearName'),
                     FolderName: findName(Folder, 'FolderID', p.FolderID, 'FolderName'),
                     SubjectName: findName(Subject, 'SubjectID', p.SubjectID, 'SubjectName'),
@@ -117,16 +151,49 @@
                     isUploaded: p.FileID && p.FileID !== "",
                     Deadline: folderObj && folderObj.Deadline ? folderObj.Deadline : null
                 };
-            }).filter(item => item !== null);
 
-            updateStats(enrichedData);
+                // Phân nhóm
+                if (isAdmin) {
+                    adminData.push(item); // Nếu là Admin thì lấy hết
+                } else {
+                    if (isUploader) myUploadData.push(item);
+                    // Dùng else if để nếu vừa nộp vừa giám sát thì ưu tiên hiện ở phần nộp (nếu bạn muốn hiện ở cả 2 phần thì đổi thành if)
+                    else if (isPreviewer) myPreviewData.push(item); 
+                }
+            });
 
-            const yearGroups = groupBy(enrichedData, 'SchoolYearName');
-            
-            if (Object.keys(yearGroups).length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding:50px;">Không có dữ liệu.</div>';
-                return;
+            // 2. Render Giao Diện Theo Nhóm
+            if (isAdmin) {
+                if (adminData.length === 0) {
+                    container.innerHTML = '<div style="text-align:center; padding:50px;">Không có dữ liệu.</div>';
+                } else {
+                    buildHierarchy('👑 TOÀN BỘ HỒ SƠ QUẢN LÝ (QUYỀN ADMIN)', adminData, container, true, true);
+                }
+            } else {
+                if (myUploadData.length === 0 && myPreviewData.length === 0) {
+                    container.innerHTML = '<div style="text-align:center; padding:50px;">Bạn chưa được phân công nhiệm vụ nào.</div>';
+                } else {
+                    // PHẦN 1: HỒ SƠ PHẢI NỘP (Không hiện cột Tên Giáo viên)
+                    if (myUploadData.length > 0) {
+                        buildHierarchy('📤 PHẦN 1: HỒ SƠ CÁ NHÂN', myUploadData, container, false, false);
+                    }
+                    
+                    // PHẦN 2: HỒ SƠ GIÁM SÁT (Hiện cột Tên Giáo viên)
+                    if (myPreviewData.length > 0) {
+                        buildHierarchy('👁️ PHẦN 2: HỒ SƠ TỔ CHUYÊN MÔN', myPreviewData, container, false, true);
+                    }
+                }
             }
+        }
+
+        // --- HÀM TẠO CẤU TRÚC DANH SÁCH (DÙNG CHUNG) ---
+        function buildHierarchy(sectionTitle, items, container, isAdmin, showUserCol) {
+            const headerTitle = document.createElement('div');
+            headerTitle.className = 'section-split-title';
+            headerTitle.innerHTML = sectionTitle;
+            container.appendChild(headerTitle);
+
+            const yearGroups = groupBy(items, 'SchoolYearName');
 
             for (const [year, yearItems] of Object.entries(yearGroups)) {
                 const lv1 = createAccordion(year, 'Năm học', 1);
@@ -139,6 +206,24 @@
                     const lv2Header = lv2.querySelector('.level-header');
                     const lv2Content = lv2.querySelector('.level-content');
                     
+                    // Thống kê cấp Folder
+                    const totalItems = folderItems.length;
+                    const doneItems = folderItems.filter(item => item.isUploaded).length;
+                    const pendingItems = totalItems - doneItems;
+
+                    const statsDiv = document.createElement('div');
+                    statsDiv.className = 'folder-stats-inline';
+                    statsDiv.innerHTML = `
+                        <span class="fs-badge fs-total">Tổng: ${totalItems}</span>
+                        <span class="fs-badge fs-done">Đã nộp: ${doneItems}</span>
+                        <span class="fs-badge fs-pending">Chưa nộp: ${pendingItems}</span>
+                    `;
+
+                    const arrow = lv2Header.querySelector('small');
+                    if (arrow) lv2Header.insertBefore(statsDiv, arrow);
+                    else lv2Header.appendChild(statsDiv);
+
+                    // Nút báo cáo cho Admin
                     if (isAdmin) {
                         const actionDiv = document.createElement('div');
                         actionDiv.className = 'header-actions';
@@ -146,28 +231,22 @@
                         const btnAssignRep = document.createElement('button');
                         btnAssignRep.className = 'btn-header-report blue';
                         btnAssignRep.innerHTML = '📥 Tổng hợp phân công';
-                        btnAssignRep.onclick = (e) => { 
-                            e.stopPropagation(); 
-                            exportWord(folderItems, folder, 'ASSIGN'); 
-                        };
+                        btnAssignRep.onclick = (e) => { e.stopPropagation(); exportWord(folderItems, folder, 'ASSIGN'); };
 
                         const btnResultRep = document.createElement('button');
                         btnResultRep.className = 'btn-header-report green';
                         btnResultRep.innerHTML = '📊 Tổng hợp kết quả';
-                        btnResultRep.onclick = (e) => { 
-                            e.stopPropagation(); 
-                            exportWord(folderItems, folder, 'RESULT'); 
-                        };
+                        btnResultRep.onclick = (e) => { e.stopPropagation(); exportWord(folderItems, folder, 'RESULT'); };
 
                         actionDiv.appendChild(btnAssignRep);
                         actionDiv.appendChild(btnResultRep);
                         
-                        const arrow = lv2Header.querySelector('small');
                         if (arrow) lv2Header.insertBefore(actionDiv, arrow);
                         else lv2Header.appendChild(actionDiv);
                     }
 
-                    const tableHtml = renderTable(folderItems, isAdmin);
+                    // Render bảng và truyền cờ showUserCol
+                    const tableHtml = renderTable(folderItems, isAdmin, showUserCol);
                     lv2Content.appendChild(tableHtml);
                     lv1Content.appendChild(lv2);
                 }
@@ -175,7 +254,7 @@
             }
         }
 
-        // --- HÀM XUẤT FILE WORD (ĐÃ FIX LỖI "HIỆN CODE" BẰNG CÁCH TÁCH CHUỖI) ---
+        // --- HÀM XUẤT FILE WORD ---
         async function exportWord(items, folderName, type) {
             const isAgree = await sysConfirm(
                 "Xác nhận tải báo cáo",
@@ -184,7 +263,6 @@
             );
             if (!isAgree) return;
 
-            // 1. Sắp xếp
             items.sort((a, b) => {
                 const subDiff = a.SubjectName.localeCompare(b.SubjectName);
                 if (subDiff !== 0) return subDiff;
@@ -195,15 +273,12 @@
                 return a.DocTypeID - b.DocTypeID;
             });
 
-            // 2. Tạo Header Word chuẩn A4 (Dùng chuỗi an toàn)
-            // LƯU Ý: Tách các dấu < và > để tránh lỗi trình duyệt
             var part1 = '<' + 'html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">';
             var part2 = '<' + 'head><' + 'meta charset="utf-8"><' + 'title>Export<' + '/title>';
             var css = '<' + 'style>';
             css += '@page Section1 { size: 21.0cm 29.7cm; margin: 2.0cm 2.0cm 2.0cm 2.0cm; mso-header-margin: 35.4pt; mso-footer-margin: 35.4pt; mso-paper-source: 0; }';
             css += 'div.Section1 { page: Section1; }';
             css += 'body { font-family: "Times New Roman", serif; font-size: 13pt; line-height: 1.3; }';
-            // CSS Phân công
             css += '.title-main { text-align: center; color: #002060; font-weight: bold; font-size: 14pt; text-transform: uppercase; margin-bottom: 5px; }';
             css += '.title-sub { text-align: center; color: #002060; font-weight: bold; font-size: 14pt; text-transform: uppercase; margin-bottom: 20px; }';
             css += '.lv1 { font-weight: bold; color: #002060; font-size: 14pt; margin-top: 15px; margin-bottom: 5px; }';
@@ -211,19 +286,16 @@
             css += '.lv3 { font-size: 13pt; margin-left: 2.0cm; margin-bottom: 5px; }';
             css += '.lv4 { font-size: 13pt; margin-left: 3.0cm; margin-bottom: 5px; }';
             css += '.footer-right { text-align: right; margin-right: 1.0cm; margin-top: 30px; }';
-            // CSS Bảng
             css += 'table { border-collapse: collapse; width: 100%; font-size: 11pt; }';
             css += 'td, th { border: 1px solid black; padding: 5px; }';
             css += '<' + '/style>';
             
             var part3 = '<' + '/head><' + 'body><' + 'div class="Section1">';
-
             var mhtmlBody = "";
             const today = new Date();
             const dateStr = "Ninh Kiều, ngày " + today.getDate() + " tháng " + (today.getMonth() + 1) + " năm " + today.getFullYear();
 
             if (type === 'ASSIGN') {
-                // --- NỘI DUNG BÁO CÁO PHÂN CÔNG ---
                 mhtmlBody += "<p class='title-main'>BÁO CÁO TỔNG HỢP PHÂN CÔNG</p>";
                 mhtmlBody += "<p class='title-sub'>" + folderName.toUpperCase() + "</p>";
                 mhtmlBody += "<p style='text-align:center; color:#002060; font-weight:bold;'>---</p>";
@@ -269,7 +341,6 @@
                 mhtmlBody += "</div>";
 
             } else {
-                // --- NỘI DUNG BÁO CÁO KẾT QUẢ ---
                 mhtmlBody += "<h2 style='text-align:center; font-family:Times New Roman; color:#00b09b; text-transform:uppercase;'>TỔNG HỢP KẾT QUẢ NỘP HỒ SƠ</h2>";
                 mhtmlBody += "<p style='text-align:center; margin-bottom:20px;'><strong>Kỳ kiểm tra:</strong> " + folderName + "</p>";
                 mhtmlBody += "<table><thead><tr style='background-color:#f2f2f2; font-weight:bold;'>";
@@ -300,9 +371,7 @@
                 mhtmlBody += "<br><p style='text-align:right; font-family:Times New Roman; font-style:italic;'>" + dateStr + "</p>";
             }
 
-            // Đóng thẻ an toàn
             var partEnd = "<" + "/div><" + "/body><" + "/html>";
-            
             var finalContent = part1 + part2 + css + part3 + mhtmlBody + partEnd;
 
             const blob = new Blob(['\uFEFF', finalContent], { type: 'application/msword' });
@@ -316,8 +385,8 @@
             document.body.removeChild(a);
         }
 
-        // --- RENDER TABLE ---
-        function renderTable(items, isAdmin) {
+        // --- RENDER TABLE (Thêm tham số showUserCol để ẩn/hiện cột Giáo Viên) ---
+        function renderTable(items, isAdmin, showUserCol) {
             const wrapper = document.createElement('div');
             wrapper.className = 'table-responsive';
 
@@ -339,7 +408,7 @@
                         <th>Khối</th>
                         <th>Đối tượng</th>
                         <th>File</th>
-                        ${isAdmin ? '<th>Giáo viên</th>' : ''}
+                        ${showUserCol ? '<th>Giáo viên</th>' : ''}
                         <th>Trạng thái</th>
                         <th style="width: 150px; text-align:right;">Thao tác</th>
                     </tr>
@@ -372,17 +441,21 @@
                 let actionBtns = '';
                 const downloadBtn = isUploaded ? `<button class="btn-icon download" title="Tải về" onclick="downloadFile('${item.FileID}', '${item.ProfileID}')">📥</button>` : '';
 
-                if (isAdmin) {
+                if (item.RoleContext === 'admin') {
                     actionBtns += downloadBtn;
                     if (isUploaded) actionBtns += `<button class="btn-icon delete-file" title="Xóa file" onclick="adminDeleteFile('${item.ProfileID}')">🗑</button>`;
                     actionBtns += `<button class="btn-icon delete-row" title="Xóa dòng" onclick="adminDeleteRow('${item.ProfileID}')">✕</button>`;
-                } else {
+                } 
+                else if (item.RoleContext === 'uploader') {
                     if (isExpired) {
                         actionBtns = isUploaded ? `${downloadBtn} <span class="status-expired">🔒</span>` : `<span class="status-expired">Hết hạn</span>`;
                     } else {
                         if (isUploaded) actionBtns = `${downloadBtn} <button class="btn-icon edit" title="Thay thế" onclick="triggerDirectUpload('${item.ProfileID}')">✎</button>`;
                         else actionBtns = `<button class="btn-icon upload" title="Nộp file" onclick="triggerDirectUpload('${item.ProfileID}')">📤</button>`;
                     }
+                } 
+                else if (item.RoleContext === 'previewer') {
+                    actionBtns = isUploaded ? downloadBtn : `<span class="status-text-small" style="color:#aaa;">Chưa có file</span>`;
                 }
 
                 tableBody += `
@@ -392,7 +465,7 @@
                         <td class="${showBlock?'':'cell-hidden'}">${blkCell}</td>
                         <td class="${showObject?'':'cell-hidden'}">${objCell}</td>
                         <td><span>${item.DocTypeName}</span>${item.Note ? `<br><small class="text-muted">📝 ${item.Note}</small>` : ''}</td>
-                        ${isAdmin ? `<td>👤 ${item.UserName}</td>` : ''}
+                        ${showUserCol ? `<td>👤 ${item.UserName}</td>` : ''}
                         <td style="font-size:0.85rem;">${statusHtml}${item.Deadline ? `<div class="text-muted" style="font-size:0.75rem;">Hạn: ${formatDate(item.Deadline)}</div>` : ''}</td>
                         <td><div class="cell-actions">${actionBtns}</div></td>
                     </tr>
