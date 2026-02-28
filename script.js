@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbxgAwE3HuT4J4zDe6AqGcyL85t8EQZshYtOp5h8Amxc36XhD3wSyDbnaMF2dZWlN0As/exec'; 
+const API_URL = 'https://script.google.com/macros/s/AKfycbwFy-Z7gEnbysrSkYC8EJ4j0VNfGKQ2PARi0S1c3pHuLSuBZ0WiKU-uLINhl3IBLfC6/exec'; 
 
 let appState = {
     allData: {}
@@ -204,7 +204,6 @@ async function downloadFile(fileId, profileID) {
 }
 
 async function adminDeleteRow(profileID) {
-    // MODAL XÁC NHẬN
     const isAgree = await sysConfirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa dòng dữ liệu này?<br>File đính kèm cũng sẽ bị xóa.');
     if (!isAgree) return;
 
@@ -222,7 +221,6 @@ async function adminDeleteRow(profileID) {
 }
 
 async function adminDeleteFile(profileID) {
-    // MODAL XÁC NHẬN
     const isAgree = await sysConfirm('Xác nhận xóa file', 'Bạn có chắc chắn muốn xóa file đính kèm này?');
     if (!isAgree) return;
 
@@ -261,11 +259,19 @@ function renderDashboard(data) {
     const container = document.getElementById('dashboardContent');
     container.innerHTML = ''; 
 
+    // --- BỔ SUNG YÊU CẦU: Phân quyền Supervisor (AccountPreview) ---
     let enrichedData = Profile.map(p => {
-        if (!isAdmin && p.AccountUpdate != currentUser.UserID) return null;
+        let isUploader = p.AccountUpdate == currentUser.UserID;
+        let isPreviewer = p.AccountPreview && p.AccountPreview.toString().split(',').includes(String(currentUser.UserID));
+        
+        let roleContext = isAdmin ? 'admin' : (isUploader ? 'uploader' : (isPreviewer ? 'previewer' : 'none'));
+
+        if (roleContext === 'none') return null; // Không có quyền thì không hiển thị
+
         const folderObj = Folder.find(f => f.FolderID == p.FolderID);
         return {
             ...p,
+            RoleContext: roleContext, // Lưu lại quyền để dùng lúc vẽ nút
             SchoolYearName: findName(SchoolYear, 'SchoolYearID', p.SchoolYearID, 'SchoolYearName'),
             FolderName: findName(Folder, 'FolderID', p.FolderID, 'FolderName'),
             SubjectName: findName(Subject, 'SubjectID', p.SubjectID, 'SubjectName'),
@@ -322,8 +328,6 @@ function renderLevel7(items) {
     const div = document.createElement('div');
     div.className = 'level-7-list';
     items.sort((a, b) => a.DocTypeID - b.DocTypeID);
-    const currentUser = JSON.parse(localStorage.getItem('upfile_user'));
-    const isAdmin = currentUser.Permissions === 'Admin';
 
     items.forEach(item => {
         const row = document.createElement('div');
@@ -347,12 +351,13 @@ function renderLevel7(items) {
         
         const downloadBtn = isUploaded ? `<button class="btn-icon download" title="Tải về máy" onclick="downloadFile('${item.FileID}', '${item.ProfileID}')">📥</button>` : '';
 
-        if (isAdmin) {
+        // --- BỔ SUNG YÊU CẦU: Render Action Btn theo RoleContext ---
+        if (item.RoleContext === 'admin') {
             actionBtn += downloadBtn;
             if (isUploaded) actionBtn += `<button class="btn-icon delete-file" title="Xóa file" onclick="adminDeleteFile('${item.ProfileID}')">🗑</button>`;
             actionBtn += `<button class="btn-icon delete-row" title="Xóa dòng" onclick="adminDeleteRow('${item.ProfileID}')">✕</button>`;
         } 
-        else {
+        else if (item.RoleContext === 'uploader') {
             if (isExpired) {
                 if (isUploaded) actionBtn = `${downloadBtn} <span class="status-expired">⛔ Đã khóa</span>`;
                 else actionBtn = `<span class="status-expired">⛔ Quá hạn</span>`;
@@ -360,6 +365,9 @@ function renderLevel7(items) {
                 if (isUploaded) actionBtn = `${downloadBtn} <button class="btn-icon edit" title="Thay thế file khác" onclick="triggerDirectUpload('${item.ProfileID}')">✎</button>`;
                 else actionBtn = `<button class="btn-icon upload" title="Nộp file ngay" onclick="triggerDirectUpload('${item.ProfileID}')">📤</button>`;
             }
+        }
+        else if (item.RoleContext === 'previewer') {
+            actionBtn = isUploaded ? downloadBtn : `<span class="status-text-small" style="color:#aaa;">Chưa có file</span>`;
         }
 
         row.innerHTML = `
@@ -433,7 +441,6 @@ function handleLoginPage() {
 }
 
 async function handleCredentialResponse(response) {
-    console.log("Google Token:", response.credential);
     showLoading('Đang xác thực Google...');
     try {
         const apiResponse = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'googleLogin', token: response.credential }) });
@@ -524,6 +531,7 @@ function fillSelect(elementId, dataArray, valueKey, textKey) {
     }
 }
 
+// --- BỔ SUNG YÊU CẦU: Thêm Cột Chọn Người Giám Sát Dạng Dropdown Multi-Select ---
 function renderTeacherTable(teachers, docTypes) {
     const tbody = document.getElementById('teacherBody');
     if(!tbody) return;
@@ -531,6 +539,8 @@ function renderTeacherTable(teachers, docTypes) {
 
     teachers.forEach(t => {
         const tr = document.createElement('tr');
+        
+        // Render DocType
         let docTypeHtml = `<div class="doctype-grid">`;
         docTypes.forEach(dt => {
             const uniqueID = `chk-${t.UserID}-${dt.DocTypeID}`;
@@ -543,6 +553,28 @@ function renderTeacherTable(teachers, docTypes) {
         });
         docTypeHtml += `</div>`;
 
+        // Render Người Giám Sát
+        let supervisorHtml = `
+            <div class="multi-select-container">
+                <div class="multi-select-btn" onclick="this.nextElementSibling.classList.toggle('show'); event.stopPropagation();">
+                    <span class="sel-text">Chọn GS...</span> <span>▼</span>
+                </div>
+                <div class="multi-select-dropdown" onclick="event.stopPropagation();">
+        `;
+        teachers.forEach(gs => {
+            if (gs.UserID !== t.UserID) { // Khóa không cho tự giám sát bản thân
+                const chkId = `gs-${t.UserID}-${gs.UserID}`;
+                supervisorHtml += `
+                    <label class="multi-select-item" for="${chkId}">
+                        <input type="checkbox" id="${chkId}" class="chk-supervisor" value="${gs.UserID}">
+                        ${gs.Name}
+                    </label>
+                `;
+            }
+        });
+        supervisorHtml += `</div></div>`;
+
+        // ĐÃ SỬA TẠI ĐÂY: Đổi vị trí docTypeHtml lên trước supervisorHtml
         tr.innerHTML = `
             <td style="text-align:center;">
                 <input type="checkbox" class="chk-teacher-row" value="${t.UserID}">
@@ -552,10 +584,12 @@ function renderTeacherTable(teachers, docTypes) {
                 <div class="text-muted" style="font-size:0.8rem;">${t.Account}</div>
             </td>
             <td>${docTypeHtml}</td>
+            <td>${supervisorHtml}</td>
         `;
         tbody.appendChild(tr);
     });
 
+    // Bắt sự kiện check row tự động check doctype
     document.querySelectorAll('.chk-teacher-row').forEach(chk => {
         chk.addEventListener('change', function() {
             const row = this.closest('tr');
@@ -564,9 +598,26 @@ function renderTeacherTable(teachers, docTypes) {
             checkPart2Status();
         });
     });
+
+    // Cập nhật text hiển thị số lượng khi chọn giám sát
+    document.querySelectorAll('.chk-supervisor').forEach(chk => {
+        chk.addEventListener('change', function() {
+            const container = this.closest('.multi-select-container');
+            const checked = container.querySelectorAll('.chk-supervisor:checked');
+            const textSpan = container.querySelector('.sel-text');
+            textSpan.innerHTML = checked.length === 0 ? 'Chọn GS...' : `<b style="color:var(--primary)">Đã chọn (${checked.length})</b>`;
+        });
+    });
+
+    // Ẩn dropdown khi click ra ngoài
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.multi-select-container')) {
+            document.querySelectorAll('.multi-select-dropdown.show').forEach(d => d.classList.remove('show'));
+        }
+    });
 }
 
-// --- LƯU PHÂN CÔNG (ĐÃ CHUẨN UX: TOAST THÔNG BÁO, MODAL XÁC NHẬN) ---
+// --- BỔ SUNG YÊU CẦU: Thu thập AccountPreview khi lưu ---
 async function handleSaveAssign() {
     const year = document.getElementById('selYear').value;
     const folder = document.getElementById('selFolder').value;
@@ -582,30 +633,34 @@ async function handleSaveAssign() {
         if (teacherChk && teacherChk.checked) {
             const teacherID = teacherChk.value;
             const docTypeChks = row.querySelectorAll('.chk-doctype:checked');
+            
+            // Lấy danh sách ID người giám sát
+            const supervisorChks = row.querySelectorAll('.chk-supervisor:checked');
+            const previewers = Array.from(supervisorChks).map(c => c.value).join(',');
+
             docTypeChks.forEach(dt => {
                 assignments.push({
                     SchoolYearID: year, FolderID: folder,
                     SubjectID: subject, BlockID: block,
                     ObjectID: object, TeacherID: teacherID,
-                    DocTypeID: dt.value
+                    DocTypeID: dt.value,
+                    AccountPreview: previewers // Chuyển chuỗi ID giám sát về backend
                 });
             });
         }
     });
 
-    // Lỗi: Dùng Toast
     if (assignments.length === 0) { 
         showToast('Chưa chọn giáo viên hoặc nội dung nào!', 'error'); 
         return; 
     }
 
-    // Xác nhận: Dùng Modal
     const isAgree = await sysConfirm(
         "Xác nhận Lưu",
         `Bạn sắp phân công <b>${assignments.length}</b> nhiệm vụ cho giáo viên.<br>Dữ liệu sẽ được ghi nhận vào hệ thống.`
     );
 
-    if (!isAgree) return; // Nếu Hủy thì dừng
+    if (!isAgree) return; 
 
     showLoading('Đang lưu phân công...');
     try {
@@ -613,9 +668,10 @@ async function handleSaveAssign() {
         const result = await response.json();
         hideLoading();
         if (result.status === 'success') {
-            // Thành công: Dùng Toast
             showToast(`Đã tạo thành công ${result.count} mục phân công!`, 'success');
             document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
+            // Reset text dropdown giám sát
+            document.querySelectorAll('.sel-text').forEach(el => el.innerHTML = 'Chọn GS...');
             checkPart2Status();
         } else { 
             showToast('Lỗi: ' + result.message, 'error'); 
