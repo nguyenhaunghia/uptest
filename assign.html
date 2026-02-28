@@ -61,13 +61,14 @@
                     <thead>
                         <tr>
                             <th style="width: 60px; text-align:center;">Chọn</th>
-                            <th style="width: 250px;">Thông tin Giáo viên</th>
+                            <th style="width: 250px;">Thông tin Giáo viên (Upload)</th>
                             <th>Nội dung (DocType) cần nộp</th>
+                            <th style="width: 200px;">Người giám sát</th>
                         </tr>
                     </thead>
                     <tbody id="teacherBody">
                         <tr>
-                            <td colspan="3" style="text-align: center; padding: 40px; color:#999;">
+                            <td colspan="4" style="text-align: center; padding: 40px; color:#999;">
                                 <div class="spinner" style="margin:0 auto 10px;"></div>
                                 Đang tải danh sách...
                             </td>
@@ -91,9 +92,8 @@
             if (userStr) {
                 const user = JSON.parse(userStr);
                 if (user.Permissions !== 'Admin') {
-                    // Dùng Toast thay vì Alert
                     showToast('Bạn không có quyền truy cập trang này!', 'error');
-                    setTimeout(() => window.location.href = 'index.html', 1500); // Chờ 1.5s để xem toast rồi chuyển
+                    setTimeout(() => window.location.href = 'index.html', 1500); 
                     return;
                 }
             } else {
