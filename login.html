@@ -10,29 +10,11 @@
 <body class="login-page-body">
     
     <div class="login-wrapper">
-        <div class="login-box">
+        <div class="login-box" style="text-align: center;">
             <h2>ĐĂNG NHẬP HỆ THỐNG</h2>
-            <p class="text-muted">- Ver 4.0.1 -</p>
+            <p class="text-muted" style="margin-bottom: 30px;">- Ver 4.0.1 -</p>
             
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="username">Tài khoản</label>
-                    <input type="text" id="username" class="form-control" placeholder="Nhập tên đăng nhập" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">Mật khẩu</label>
-                    <input type="password" id="password" class="form-control" placeholder="Nhập mật khẩu" required>
-                </div>
-                <button type="submit" class="btn btn-primary btn-block">Đăng Nhập</button>
-            </form>
-
-            <div class="separator-container">
-                <div class="separator-line"></div>
-                <span class="separator-text">Hoặc</span>
-                <div class="separator-line"></div>
-            </div>
-
-            <div style="display: flex; justify-content: center;">
+            <div style="display: flex; justify-content: center; margin-bottom: 20px;">
                 <div id="g_id_onload"
                      data-client_id="815880068722-4jisjai08530a68lp3o3fj5v7a9imueo.apps.googleusercontent.com"
                      data-callback="handleCredentialResponse"
@@ -48,6 +30,7 @@
                      data-width="320">
                 </div>
             </div>
+            
             <div id="loginMessage" style="color:red; text-align:center; margin-top:10px;"></div>
         </div>
     </div>
@@ -71,7 +54,10 @@
     <script src="script.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            handleLoginPage();
+            // Kiểm tra xem hàm handleLoginPage có tồn tại không trước khi gọi
+            if (typeof handleLoginPage === 'function') {
+                handleLoginPage();
+            }
         });
     </script>
 </body>
