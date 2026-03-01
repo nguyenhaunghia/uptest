@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbyFPWi17vNBQMrofar-OuJWi1jyW2m_2BRjKXuFJ1KNRam12dIzd5BXo_oMCypSbtrH/exec'; 
+const API_URL = 'https://script.google.com/macros/s/AKfycbx3LdC7RvZmgJZ3EgoOQh1hTWggCdMHfYcAFZsRHwVQ-7ElRGFgCIQsCFCMc-7a6eT-/exec'; 
 
 let appState = {
     allData: {}
@@ -195,13 +195,59 @@ async function handleFileSelected(input) {
 async function downloadFile(fileId, profileID) {
     if (!fileId) return;
     const user = JSON.parse(localStorage.getItem('upfile_user'));
-    fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'logClientAction', userID: user.UserID, act: 'DOWNLOAD', note: `Tải file ID: ${fileId} | ProfileID: ${profileID}` })
-    });
-    const url = `https://drive.google.com/uc?export=download&id=${fileId}`;
-    window.open(url, '_blank');
+
+    // Bật Loading vì chuyển Base64 sẽ mất vài giây
+    showLoading('Đang lấy dữ liệu file từ Server...'); 
+    
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ 
+                action: 'downloadFile', 
+                fileId: fileId, 
+                userID: user.UserID, 
+                profileID: profileID 
+            })
+        });
+        
+        const result = await response.json();
+        hideLoading();
+
+        if (result.status === 'success') {
+            // Dịch ngược Base64 thành file
+            const byteCharacters = atob(result.base64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], {type: result.mimeType});
+
+            // Tạo link ảo và tự động click để tải về máy
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = result.fileName;
+            document.body.appendChild(a);
+            a.click();
+            
+            // Dọn dẹp
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } else {
+            showToast('Lỗi tải file: ' + result.message, 'error');
+        }
+    } catch (e) {
+        hideLoading();
+        showToast('Lỗi kết nối khi tải file', 'error');
+    }
 }
+
+
+
+
+
 
 async function adminDeleteRow(profileID) {
     const isAgree = await sysConfirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa dòng dữ liệu này?<br>File đính kèm cũng sẽ bị xóa.');
@@ -681,6 +727,7 @@ async function handleSaveAssign() {
         showToast('Lỗi kết nối server', 'error'); 
     }
 }
+
 
 
 
