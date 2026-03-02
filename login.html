@@ -6,15 +6,100 @@
     <title>Đăng nhập - UpFile</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        /* CSS LÀM ĐẸP TRANG LOGIN - PHONG CÁCH TỐI GIẢN (MINIMALIST WHITE) */
+        
+        body.login-page-body {
+            padding-top: 0 !important;
+            background-color: #ffffff; /* Nền trắng */
+            /* Thêm họa tiết lưới chấm bi siêu mờ để nền trắng không bị trống trải */
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .login-box {
+            background: #ffffff !important;
+            border-radius: 24px !important;
+            padding: 3.5rem 2.5rem !important;
+            /* Bóng đổ cực kỳ mềm mại để tôn khối hộp lên khỏi nền trắng */
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0,0,0,0.05) !important;
+            border: 1px solid #f1f3f5;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Thanh viền màu gradient trên cùng của hộp đăng nhập */
+        .login-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #4e54c8, #8f94fb, #74ebd5);
+        }
+
+        /* Logo bay lơ lửng nhẹ nhàng */
+        .brand-logo-login {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+            filter: drop-shadow(0 8px 6px rgba(0,0,0,0.08));
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .welcome-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            letter-spacing: -0.5px;
+        }
+
+        .welcome-subtitle {
+            color: #7f8c8d;
+            font-size: 0.95rem;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+
+        .version-badge {
+            display: inline-block;
+            background: #f8f9fa;
+            color: #6c757d;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 25px;
+            border: 1px solid #e9ecef;
+        }
+
+        .login-footer {
+            margin-top: 30px;
+            font-size: 0.8rem;
+            color: #adb5bd;
+        }
+    </style>
 </head>
 <body class="login-page-body">
     
     <div class="login-wrapper">
         <div class="login-box" style="text-align: center;">
-            <h2>ĐĂNG NHẬP HỆ THỐNG</h2>
-            <p class="text-muted" style="margin-bottom: 30px;">- Ver 4.5.6 -</p>
             
-            <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+            <div class="brand-logo-login">🚀</div>
+            <h2 class="welcome-title">ĐĂNG NHẬP</h2>
+            <p class="welcome-subtitle">HỆ THỐNG QUẢN LÝ ĐỀ KIỂM TRA</p>
+            
+            <div class="version-badge">Version 4.5.6</div>
+            
+            <div style="display: flex; justify-content: center; margin-bottom: 10px;">
                 <div id="g_id_onload"
                      data-client_id="815880068722-4jisjai08530a68lp3o3fj5v7a9imueo.apps.googleusercontent.com"
                      data-callback="handleCredentialResponse"
@@ -31,7 +116,11 @@
                 </div>
             </div>
             
-            <div id="loginMessage" style="color:red; text-align:center; margin-top:10px;"></div>
+            <div id="loginMessage" style="color:#e74c3c; text-align:center; font-weight:600; margin-top:15px; min-height: 20px;"></div>
+
+            <div class="login-footer">
+                &copy; N's SoftWave | nhn.softwave@gmail.com
+            </div>
         </div>
     </div>
 
@@ -54,7 +143,6 @@
     <script src="script.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Kiểm tra xem hàm handleLoginPage có tồn tại không trước khi gọi
             if (typeof handleLoginPage === 'function') {
                 handleLoginPage();
             }
