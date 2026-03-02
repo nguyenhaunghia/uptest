@@ -126,14 +126,13 @@
 
             // 1. Phân loại dữ liệu
             Profile.forEach(p => {
-                // Xử lý chuỗi AccountPreview đề phòng có khoảng trắng (VD: "U01, U02")
                 let previewList = p.AccountPreview ? p.AccountPreview.toString().split(',').map(s => s.trim()) : [];
                 
                 let isUploader = p.AccountUpdate == currentUser.UserID;
                 let isPreviewer = previewList.includes(String(currentUser.UserID));
                 let roleContext = isAdmin ? 'admin' : (isUploader ? 'uploader' : (isPreviewer ? 'previewer' : 'none'));
 
-                if (roleContext === 'none') return; // Không có quyền thì bỏ qua
+                if (roleContext === 'none') return;
 
                 const folderObj = Folder.find(f => f.FolderID == p.FolderID);
 
@@ -152,12 +151,10 @@
                     Deadline: folderObj && folderObj.Deadline ? folderObj.Deadline : null
                 };
 
-                // Phân nhóm
                 if (isAdmin) {
-                    adminData.push(item); // Nếu là Admin thì lấy hết
+                    adminData.push(item);
                 } else {
                     if (isUploader) myUploadData.push(item);
-                    // Dùng else if để nếu vừa nộp vừa giám sát thì ưu tiên hiện ở phần nộp (nếu bạn muốn hiện ở cả 2 phần thì đổi thành if)
                     else if (isPreviewer) myPreviewData.push(item); 
                 }
             });
@@ -167,26 +164,23 @@
                 if (adminData.length === 0) {
                     container.innerHTML = '<div style="text-align:center; padding:50px;">Không có dữ liệu.</div>';
                 } else {
-                    buildHierarchy('👑 TOÀN BỘ HỒ SƠ QUẢN LÝ (QUYỀN ADMIN)', adminData, container, true, true);
+                    buildHierarchy('👑 TỔNG HỢP HỒ SƠ', adminData, container, true, true);
                 }
             } else {
                 if (myUploadData.length === 0 && myPreviewData.length === 0) {
                     container.innerHTML = '<div style="text-align:center; padding:50px;">Bạn chưa được phân công nhiệm vụ nào.</div>';
                 } else {
-                    // PHẦN 1: HỒ SƠ PHẢI NỘP (Không hiện cột Tên Giáo viên)
                     if (myUploadData.length > 0) {
-                        buildHierarchy('📤 PHẦN 1: HỒ SƠ CÁ NHÂN', myUploadData, container, false, false);
+                        buildHierarchy('📤 PHẦN HỒ SƠ CÁ NHÂN', myUploadData, container, false, false);
                     }
-                    
-                    // PHẦN 2: HỒ SƠ GIÁM SÁT (Hiện cột Tên Giáo viên)
                     if (myPreviewData.length > 0) {
-                        buildHierarchy('👁️ PHẦN 2: HỒ SƠ TỔ CHUYÊN MÔN', myPreviewData, container, false, true);
+                        buildHierarchy('👁️ PHẦN HỒ SƠ TỔ CHUYÊN MÔN', myPreviewData, container, false, true);
                     }
                 }
             }
         }
 
-        // --- HÀM TẠO CẤU TRÚC DANH SÁCH (DÙNG CHUNG) ---
+        // --- HÀM TẠO CẤU TRÚC DANH SÁCH ---
         function buildHierarchy(sectionTitle, items, container, isAdmin, showUserCol) {
             const headerTitle = document.createElement('div');
             headerTitle.className = 'section-split-title';
@@ -206,7 +200,6 @@
                     const lv2Header = lv2.querySelector('.level-header');
                     const lv2Content = lv2.querySelector('.level-content');
                     
-                    // Thống kê cấp Folder
                     const totalItems = folderItems.length;
                     const doneItems = folderItems.filter(item => item.isUploaded).length;
                     const pendingItems = totalItems - doneItems;
@@ -223,7 +216,6 @@
                     if (arrow) lv2Header.insertBefore(statsDiv, arrow);
                     else lv2Header.appendChild(statsDiv);
 
-                    // Nút báo cáo cho Admin
                     if (isAdmin) {
                         const actionDiv = document.createElement('div');
                         actionDiv.className = 'header-actions';
@@ -245,7 +237,6 @@
                         else lv2Header.appendChild(actionDiv);
                     }
 
-                    // Render bảng và truyền cờ showUserCol
                     const tableHtml = renderTable(folderItems, isAdmin, showUserCol);
                     lv2Content.appendChild(tableHtml);
                     lv1Content.appendChild(lv2);
@@ -385,10 +376,18 @@
             document.body.removeChild(a);
         }
 
-        // --- RENDER TABLE (Thêm tham số showUserCol để ẩn/hiện cột Giáo Viên) ---
+        // --- RENDER TABLE (ĐÃ CẬP NHẬT SVG ICON) ---
         function renderTable(items, isAdmin, showUserCol) {
             const wrapper = document.createElement('div');
             wrapper.className = 'table-responsive';
+
+            // KHO SVG ICONS TẠI ĐÂY
+            const svgDownload = `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+            const svgUpload = `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`;
+            const svgEdit = `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
+            const svgDeleteFile = `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+            const svgDeleteRow = `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+            const svgLock = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
 
             items.sort((a, b) => {
                 const subDiff = a.SubjectName.localeCompare(b.SubjectName);
@@ -439,19 +438,19 @@
                 let statusHtml = isUploaded ? `<span style="color:#00b09b;">✔ ${formatDateTimeFull(item.TimeUpdate)}</span>` : `<span style="color:#e74c3c;">⏳ Chưa nộp</span>`;
 
                 let actionBtns = '';
-                const downloadBtn = isUploaded ? `<button class="btn-icon download" title="Tải về" onclick="downloadFile('${item.FileID}', '${item.ProfileID}')">📥</button>` : '';
+                const downloadBtn = isUploaded ? `<button class="btn-icon download" title="Tải về" onclick="downloadFile('${item.FileID}', '${item.ProfileID}')">${svgDownload}</button>` : '';
 
                 if (item.RoleContext === 'admin') {
                     actionBtns += downloadBtn;
-                    if (isUploaded) actionBtns += `<button class="btn-icon delete-file" title="Xóa file" onclick="adminDeleteFile('${item.ProfileID}')">🗑</button>`;
-                    actionBtns += `<button class="btn-icon delete-row" title="Xóa dòng" onclick="adminDeleteRow('${item.ProfileID}')">✕</button>`;
+                    if (isUploaded) actionBtns += `<button class="btn-icon delete-file" title="Xóa file" onclick="adminDeleteFile('${item.ProfileID}')">${svgDeleteFile}</button>`;
+                    actionBtns += `<button class="btn-icon delete-row" title="Xóa dòng" onclick="adminDeleteRow('${item.ProfileID}')">${svgDeleteRow}</button>`;
                 } 
                 else if (item.RoleContext === 'uploader') {
                     if (isExpired) {
-                        actionBtns = isUploaded ? `${downloadBtn} <span class="status-expired">🔒</span>` : `<span class="status-expired">Hết hạn</span>`;
+                        actionBtns = isUploaded ? `${downloadBtn} <span class="status-expired">${svgLock} Đã khóa</span>` : `<span class="status-expired">${svgLock} Hết hạn</span>`;
                     } else {
-                        if (isUploaded) actionBtns = `${downloadBtn} <button class="btn-icon edit" title="Thay thế" onclick="triggerDirectUpload('${item.ProfileID}')">✎</button>`;
-                        else actionBtns = `<button class="btn-icon upload" title="Nộp file" onclick="triggerDirectUpload('${item.ProfileID}')">📤</button>`;
+                        if (isUploaded) actionBtns = `${downloadBtn} <button class="btn-icon edit" title="Thay thế file khác" onclick="triggerDirectUpload('${item.ProfileID}')">${svgEdit}</button>`;
+                        else actionBtns = `<button class="btn-icon upload" title="Nộp file" onclick="triggerDirectUpload('${item.ProfileID}')">${svgUpload}</button>`;
                     }
                 } 
                 else if (item.RoleContext === 'previewer') {
