@@ -7,7 +7,7 @@
     --secondary: #6c757d;
     --success: #00b09b;
     --danger: #ff5f6d;
-    --bg-color: #f4f7f6; /* Nền sáng dịu */
+    --bg-color: #f4f7f6; 
     --white: #ffffff;
     --text-dark: #2d3436;
     --text-light: #636e72;
@@ -120,8 +120,8 @@ body.login-page-body {
 .btn-danger { background: var(--danger); color: white; }
 .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
 
-/* Icon Buttons */
-.btn-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid transparent; cursor: pointer; font-size: 1rem; transition: all 0.2s; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+/* Icon Buttons (Đã cập nhật tối ưu SVG) */
+.btn-icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid transparent; cursor: pointer; transition: all 0.2s; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 0; }
 .btn-icon:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
 .btn-icon.upload { color: #1565c0; background: #e3f2fd; border-color: #bbdefb; }
 .btn-icon.upload:hover { background: #2196f3; color: white; border-color: #2196f3; }
@@ -134,8 +134,8 @@ body.login-page-body {
 .btn-icon.delete-row { color: #fff; background: #34495e; border-color: #2c3e50; }
 .btn-icon.delete-row:hover { background: #000; }
 
-.status-text-small { font-size: 0.8rem; color: #666; font-style: italic; margin-left: 8px; font-weight: 500; }
-.status-expired { color: #999; font-style: italic; background: #eee; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
+.status-text-small { font-size: 0.8rem; color: #666; font-style: italic; margin-left: 8px; font-weight: 500; display: inline-flex; align-items: center; }
+.status-expired { color: #999; font-style: italic; background: #eee; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; display: inline-flex; align-items: center; }
 
 /* Modal & Loading */
 .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
@@ -234,91 +234,24 @@ body.login-page-body {
 /* Footer */
 .sticky-footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px 30px; box-shadow: 0 -4px 20px rgba(0,0,0,0.05); display: flex; justify-content: flex-end; gap: 15px; z-index: 1000; border-top: 1px solid #eee; }
 
-
 /* --- TRẠNG THÁI DISABLE (VALIDATION) --- */
-
-/* Làm mờ và khóa click cho Card Phần 2 */
-.section-disabled {
-    opacity: 0.5;
-    pointer-events: none; /* Không cho click */
-    filter: grayscale(100%); /* Chuyển sang trắng đen */
-    transition: all 0.3s;
-}
-
-/* Style cho nút Save khi chưa đủ điều kiện */
-.btn:disabled {
-    background: #bdc3c7; /* Màu xám */
-    color: #fff;
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none !important;
-}
-
-
+.section-disabled { opacity: 0.5; pointer-events: none; filter: grayscale(100%); transition: all 0.3s; }
+.btn:disabled { background: #bdc3c7; color: #fff; cursor: not-allowed; box-shadow: none; transform: none !important; }
 
 /* =========================================
    6. SYSTEM MODAL (REPLACEMENT FOR ALERT/CONFIRM)
    ========================================= */
-.sys-modal-box {
-    background: white;
-    width: 400px;
-    max-width: 90%;
-    padding: 30px 25px;
-    border-radius: 16px;
-    text-align: center;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-    animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    position: relative;
-}
-
-/* Icon tròn to ở giữa */
-.sys-modal-icon-box {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    margin: 0 auto 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    position: relative;
-}
-
-/* Các loại màu sắc icon */
+.sys-modal-box { background: white; width: 400px; max-width: 90%; padding: 30px 25px; border-radius: 16px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
+.sys-modal-icon-box { width: 70px; height: 70px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 2rem; position: relative; }
 .sys-type-success { background: #e6fffa; color: #00b09b; border: 2px solid #b2f5ea; }
 .sys-type-warning { background: #fff8e1; color: #f39c12; border: 2px solid #ffe0b2; }
 .sys-type-error   { background: #fff5f5; color: #e74c3c; border: 2px solid #fed7d7; }
 .sys-type-info    { background: #e3f2fd; color: #4e54c8; border: 2px solid #bbdefb; }
-
-.sys-modal-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    margin-bottom: 10px;
-}
-
-.sys-modal-msg {
-    font-size: 0.95rem;
-    color: var(--text-light);
-    line-height: 1.5;
-    margin-bottom: 25px;
-}
-
-.sys-modal-actions {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-}
-
-.sys-modal-actions button {
-    min-width: 100px;
-    padding: 10px 20px;
-}
-
-/* Ẩn nút Cancel khi chỉ là Alert */
+.sys-modal-title { font-size: 1.25rem; font-weight: 700; color: var(--text-dark); margin-bottom: 10px; }
+.sys-modal-msg { font-size: 0.95rem; color: var(--text-light); line-height: 1.5; margin-bottom: 25px; }
+.sys-modal-actions { display: flex; justify-content: center; gap: 15px; }
+.sys-modal-actions button { min-width: 100px; padding: 10px 20px; }
 .sys-btn-hidden { display: none; }
-
-
 
 /* =========================================
    8. STYLE CHO DROPDOWN CHỌN NHIỀU GIÁO VIÊN GIÁM SÁT
