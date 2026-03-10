@@ -214,6 +214,43 @@ async function downloadFile(fileId, profileID) {
         hideLoading();
 
         if (result.status === 'success') {
+            
+            // =========================================================
+            // [UPDATE] XỬ LÝ ĐỔI TÊN FILE TỰ ĐỘNG
+            // =========================================================
+            let finalFileName = result.fileName; // Mặc định lấy tên gốc nếu không tìm thấy dữ liệu
+            
+            if (typeof appState !== 'undefined' && appState.allData && appState.allData.Profile) {
+                const data = appState.allData;
+                const profile = data.Profile.find(p => p.ProfileID === profileID);
+                
+                if (profile) {
+                    // Ánh xạ dữ liệu theo đúng cấu trúc bạn yêu cầu
+                    const syName = findName(data.SchoolYear, 'SchoolYearID', profile.SchoolYearID, 'SchoolYearName') || '';
+                    const fdNick = findName(data.Folder, 'FolderID', profile.FolderID, 'FolderNickName') || '';
+                    const dtNick = findName(data.DocType, 'DocTypeID', profile.DocTypeID, 'DocTypeNickName') || '';
+                    const subNick = findName(data.Subject, 'SubjectID', profile.SubjectID, 'SubjectNickName') || '';
+                    const blkNick = findName(data.Block, 'BlockID', profile.BlockID, 'BlockNickName') || '';
+                    const objNick = findName(data.Object, 'ObjectID', profile.ObjectID, 'ObjectNickName') || '';
+                    const remName = findName(data.User, 'UserID', profile.AccountUpdate, 'ReminiscentName') || '';
+
+                    // Lấy phần đuôi mở rộng của file gốc (VD: .pdf, .docx, .png)
+                    let extension = "";
+                    const dotIndex = result.fileName.lastIndexOf('.');
+                    if (dotIndex !== -1) extension = result.fileName.substring(dotIndex);
+                    
+                    // Ghép chuỗi theo đúng Format: SchoolYear FolderNickName-DocTypeNickName-SubjectNickName-BlockNickName-ObjectNickName-ReminiscentName
+                    //let newName = `${syName} ${fdNick} - ${dtNick} - ${subNick} ${blkNick}.${objNick} - ${remName}`;
+                
+                    let newName = `${dtNick} - ${subNick} ${blkNick}.${objNick} - ${remName.toUpperCase()}`;
+                    // Xóa các ký tự đặc biệt không được phép đặt tên file trong Windows/Mac
+                    newName = newName.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+                    
+                    finalFileName = newName + extension;
+                }
+            }
+            // =========================================================
+
             // Dịch ngược Base64 thành file
             const byteCharacters = atob(result.base64);
             const byteNumbers = new Array(byteCharacters.length);
@@ -228,7 +265,7 @@ async function downloadFile(fileId, profileID) {
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = url;
-            a.download = result.fileName;
+            a.download = finalFileName; // <-- Thay tên gốc bằng tên đã được format
             document.body.appendChild(a);
             a.click();
             
@@ -727,6 +764,7 @@ async function handleSaveAssign() {
         showToast('Lỗi kết nối server', 'error'); 
     }
 }
+
 
 
 
